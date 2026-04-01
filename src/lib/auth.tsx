@@ -6,6 +6,8 @@ interface AuthContext {
   user: User | null
   session: Session | null
   loading: boolean
+  recoveryMode: boolean
+  setRecoveryMode: (mode: boolean) => void
   signInWithGoogle: () => Promise<void>
   signInWithEmail: (email: string) => Promise<{ error: AuthError | null }>
   signInWithPassword: (email: string, password: string) => Promise<AuthResponse>
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [recoveryMode, setRecoveryMode] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,9 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null)
       setLoading(false)
       
-      // Manejar el evento de reset password (opcional aca, mejor en UI)
       if (event === 'PASSWORD_RECOVERY') {
-        // Redirigir o abrir modal
+        setRecoveryMode(true)
       }
     })
 
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     return await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/dashboard?reset=true`
+      redirectTo: `${window.location.origin}/dashboard`
     })
   }
 
@@ -95,6 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, 
       session, 
       loading, 
+      recoveryMode,
+      setRecoveryMode,
       signInWithGoogle, 
       signInWithEmail, 
       signInWithPassword,

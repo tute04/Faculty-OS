@@ -122,7 +122,9 @@ const AnimatedRoutes = () => {
 import { OnboardingFlow } from './features/onboarding/OnboardingFlow';
 
 const ProtectedLayout = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, recoveryMode, setRecoveryMode, updateProfile } = useAuth();
+  const [newPassword, setNewPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   
   if (loading) {
     return (
@@ -135,6 +137,19 @@ const ProtectedLayout = () => {
   if (!user) {
     return <Login />;
   }
+
+  const handleResetPassword = async () => {
+    if (newPassword.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+    setResetLoading(true);
+    const { error } = await updateProfile({ password: newPassword });
+    setResetLoading(false);
+    if (!error) {
+      setRecoveryMode(false);
+      alert('¡Contraseña guardada! Ya podés entrar con tu mail y clave la próxima vez.');
+    } else {
+      alert('Error: ' + error.message);
+    }
+  };
 
   return (
     <AppProvidersAndLogic>
@@ -149,6 +164,37 @@ const ProtectedLayout = () => {
           </div>
           <MobileTabBar />
         </div>
+
+        {/* Global Password Reset Modal (Supabase Recovery) */}
+        <Modal 
+          open={recoveryMode} 
+          onClose={() => setRecoveryMode(false)} 
+          title="Creá tu nueva contraseña"
+        >
+          <div className="flex flex-col gap-5 py-2">
+            <p className="text-sm text-text-secondary leading-relaxed">
+              Entraste mediante un link de recuperación. Por favor, definí una contraseña para poder ingresar siempre con tu email y esta clave.
+            </p>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-text-faint ml-1">Nueva Contraseña</label>
+              <input 
+                type="password" 
+                value={newPassword} 
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="w-full h-12 bg-base border border-border rounded-xl px-4 text-sm focus:border-amber transition-colors outline-none"
+              />
+            </div>
+            <Button 
+              onClick={handleResetPassword} 
+              variant="primary" 
+              className="w-full h-12 !bg-amber !text-[#17130b] font-bold"
+              disabled={resetLoading}
+            >
+              {resetLoading ? 'Guardando...' : 'Guardar contraseña'}
+            </Button>
+          </div>
+        </Modal>
       </OnboardingFlow>
     </AppProvidersAndLogic>
   );
