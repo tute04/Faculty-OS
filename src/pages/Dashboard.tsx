@@ -15,16 +15,45 @@ import { calculatePriorityScore } from '../lib/priority';
 // Feature Components
 import { StatCardsRow } from '../features/dashboard/components/StatCardsRow';
 import { MiniPlanner } from '../features/dashboard/components/MiniPlanner';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────────
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { exams, subjectStatuses, loading: examsLoading } = useExams();
   const { blocks, loading: blocksLoading } = useWeekBlocks();
   const { habits, toggleDay, loading: habitsLoading } = useHabits();
   const { materias } = useMaterias();
 
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+
+  // Recovery Logic
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') === 'true') {
+      setShowResetModal(true);
+      // Limpiar URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const handleResetPassword = async () => {
+    if (newPassword.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+    setResetLoading(true);
+    const { error } = await updateProfile({ password: newPassword });
+    setResetLoading(false);
+    if (!error) {
+      setShowResetModal(false);
+      alert('¡Contraseña guardada! Ya podés entrar con tu mail y clave la próxima vez.');
+    } else {
+      alert('Error: ' + error.message);
+    }
+  };
 
   const now = new Date();
   const upcomingExams = exams
@@ -235,9 +264,39 @@ export const Dashboard: React.FC = () => {
           <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }}>
             <MiniPlanner blocks={blocks} />
           </motion.div>
-
         </motion.div>
       </div>
+
+      {/* Modal de Reset Password (Solo usuarios migrando de Magic Link) */}
+      <Modal 
+        open={showResetModal} 
+        onClose={() => setShowResetModal(false)} 
+        title="Creá tu nueva contraseña"
+      >
+        <div className="flex flex-col gap-5 py-2">
+          <p className="text-sm text-text-secondary leading-relaxed">
+            Parece que entraste con un link. Poné una contraseña ahora para poder entrar siempre con tu email y clave sin depender del mail de acceso.
+          </p>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-text-faint ml-1">Nueva Contraseña</label>
+            <input 
+              type="password" 
+              value={newPassword} 
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+              className="w-full h-12 bg-base border border-border rounded-xl px-4 text-sm focus:border-amber transition-colors outline-none"
+            />
+          </div>
+          <Button 
+            onClick={handleResetPassword} 
+            variant="primary" 
+            className="w-full h-12 !bg-amber !text-[#17130b] font-bold"
+            disabled={resetLoading}
+          >
+            {resetLoading ? 'Guardando...' : 'Guardar contraseña'}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

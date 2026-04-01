@@ -10,8 +10,9 @@ interface AuthContext {
   signInWithEmail: (email: string) => Promise<{ error: AuthError | null }>
   signInWithPassword: (email: string, password: string) => Promise<AuthResponse>
   signUpWithPassword: (email: string, password: string, name: string) => Promise<AuthResponse>
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
-  updateProfile: (name: string) => Promise<{ error: AuthError | null }>
+  updateProfile: (updates: { name?: string, password?: string }) => Promise<{ error: AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContext | null>(null)
@@ -28,10 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      
+      // Manejar el evento de reset password (opcional aca, mejor en UI)
+      if (event === 'PASSWORD_RECOVERY') {
+        // Redirigir o abrir modal
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -66,9 +72,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const updateProfile = async (name: string) => {
+  const resetPassword = async (email: string) => {
+    return await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/dashboard?reset=true`
+    })
+  }
+
+  const updateProfile = async (updates: { name?: string, password?: string }) => {
     const { data, error } = await supabase.auth.updateUser({
-      data: { full_name: name }
+      password: updates.password,
+      data: updates.name ? { full_name: updates.name } : undefined
     })
     return { error }
   }
@@ -86,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail, 
       signInWithPassword,
       signUpWithPassword,
+      resetPassword,
       signOut,
       updateProfile
     }}>
