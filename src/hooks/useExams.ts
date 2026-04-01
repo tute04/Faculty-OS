@@ -74,11 +74,15 @@ export function useExams() {
         const defaultColors = ['#f59e0b', '#fb923c', '#4ade80', '#2dd4bf', '#8b5cf6', '#ec4899'];
         const randomColor = defaultColors[Math.floor(Math.random() * defaultColors.length)];
 
-        await supabase.from('materias').insert({
+        const { error: matError } = await supabase.from('materias').insert({
           user_id: user!.id,
           name: exam.subject,
           color: randomColor
         });
+
+        if (matError) {
+          console.error("Error auto-creando materia (¿RLS?):", matError);
+        }
       }
     }
 

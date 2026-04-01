@@ -25,11 +25,23 @@ export const Dashboard: React.FC = () => {
   const { exams, subjectStatuses, loading: examsLoading } = useExams();
   const { blocks, loading: blocksLoading } = useWeekBlocks();
   const { habits, toggleDay, loading: habitsLoading } = useHabits();
-  const { materias } = useMaterias();
+  const { materias, syncWithSubjects } = useMaterias();
 
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const now = new Date();
+  
+  // Background Sync: Asegurar que todas las materias de los exámenes existan
+  React.useEffect(() => {
+    if (examsLoading || exams.length === 0) return;
+    const subjectsInExams = Array.from(new Set(exams.map(e => e.subject).filter(Boolean)));
+    const missing = subjectsInExams.filter(s => !materias.find(m => m.name === s));
+    
+    if (missing.length > 0) {
+      syncWithSubjects(missing);
+    }
+  }, [exams, materias, examsLoading, syncWithSubjects]);
+
   const upcomingExams = exams
     .filter((e) => e.status === 'pendiente' && new Date(e.date) >= new Date(new Date().setHours(0,0,0,0)))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -145,9 +157,9 @@ export const Dashboard: React.FC = () => {
                         href={generateGoogleCalendarUrl(ex)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-[10px] text-amber-soft font-bold mt-1 hover:text-amber transition-colors opacity-0 group-hover:opacity-100"
+                        className="flex items-center gap-1.5 text-[10px] text-amber-soft font-bold mt-1.5 opacity-70 hover:opacity-100 transition-all"
                       >
-                        <CalendarPlus size={12} />
+                        <CalendarPlus size={12} className="text-amber" />
                         Agendar en Calendar
                       </a>
                     </div>

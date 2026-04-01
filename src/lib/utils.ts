@@ -50,29 +50,21 @@ export const CAT_COLORS: Record<string, string> = {
  */
 export function generateGoogleCalendarUrl(exam: { subject: string; type: string; date: string }): string {
   try {
-    const startDate = new Date(exam.date);
-    if (isNaN(startDate.getTime())) return "#";
+    const d = new Date(exam.date);
+    if (isNaN(d.getTime())) return "#";
 
-    const base = "https://calendar.google.com/calendar/render?action=TEMPLATE";
-    const title = encodeURIComponent(`Examen: ${exam.type} - ${exam.subject} | Faculty OS`);
-    
-    // Formato Google: YYYYMMDDTHHMMSSZ
-    // Asumimos las 12:00 UTC (~09:00 AR) por defecto, y 2 horas de duración
-    startDate.setUTCHours(12, 0, 0); 
-    
-    const endDate = new Date(startDate);
-    endDate.setUTCHours(14, 0, 0); // +2 horas
+    // Forzar 9 AM hora local para no depender de UTC
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0, 0);
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 11, 0, 0);
 
-    const format = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-    const dates = `${format(startDate)}/${format(endDate)}`;
+    const format = (date: Date) => date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const dates = `${format(start)}/${format(end)}`;
     
-    const details = encodeURIComponent(
-      `📅 Recordatorio de examen generado por Faculty OS.\n\nMateria: ${exam.subject}\nTipo: ${exam.type}\n\n¡Muchos éxitos!`
-    );
+    const title = encodeURIComponent(`${exam.type.toUpperCase()}: ${exam.subject}`);
+    const details = encodeURIComponent(`Recordatorio automático de Faculty OS.`);
 
-    return `${base}&text=${title}&dates=${dates}&details=${details}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}`;
   } catch (e) {
-    console.error("Error generating calendar URL:", e);
     return "#";
   }
 }
