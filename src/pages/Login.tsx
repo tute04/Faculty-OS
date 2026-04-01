@@ -14,7 +14,7 @@ export const Login = () => {
     const { error } = await signInWithEmail(email)
     setLoading(false)
     if (error) {
-      setMessage('Error al enviar el link. Revisá tu mail.')
+      setMessage(`Error: ${error.message || 'No se pudo enviar el link'}`)
     } else {
       setMessage('¡Link enviado! Revisá tu casilla de correo.')
     }
