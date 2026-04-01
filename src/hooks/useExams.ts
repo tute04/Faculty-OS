@@ -60,17 +60,41 @@ export function useExams() {
   }
 
   const addExam = async (exam: Omit<Exam, 'id'>) => {
-    const { data, error } = await supabase
+    // Asegurar que la materia exista antes de crear el examen
+    if (exam.subject) {
+      const { data: existingMateria } = await supabase
+        .from('materias')
+        .select('id')
+        .eq('user_id', user!.id)
+        .eq('name', exam.subject)
+        .maybeSingle();
+
+      if (!existingMateria) {
+        // Colores por defecto para auto-creación
+        const defaultColors = ['#f59e0b', '#fb923c', '#4ade80', '#2dd4bf', '#8b5cf6', '#ec4899'];
+        const randomColor = defaultColors[Math.floor(Math.random() * defaultColors.length)];
+
+        await supabase.from('materias').insert({
+          user_id: user!.id,
+          name: exam.subject,
+          color: randomColor
+        });
+      }
+    }
+
+    const { data: examData, error } = await supabase
       .from('exams')
       .insert({ ...exam, user_id: user!.id })
       .select()
       .single()
+
     if (error) {
       console.error(error)
       return
     }
-    if (data) {
-      setExams(prev => [...prev, data])
+
+    if (examData) {
+      setExams(prev => [...prev, examData])
       // UX: Pedir permiso de notificación solo al crear un examen real
       if ('Notification' in window && Notification.permission === 'default') {
         import('../lib/notifications').then(({ requestNotificationPermission }) => {
