@@ -1,131 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Calendar, CheckCircle2, ArrowRight, Flame } from 'lucide-react';
+import { BookOpen, CheckCircle2, ArrowRight, Flame } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useExams } from '../hooks/useExams';
 import { useWeekBlocks } from '../hooks/useWeekBlocks';
 import { useHabits } from '../hooks/useHabits';
 import { useMaterias } from '../hooks/useMaterias';
 import { useAuth } from '../lib/auth';
-import { SEED_EXAMS, SEED_BLOCKS, SEED_HABITS } from '../lib/seed';
-import { cn, daysUntil, CAT_COLORS, greetingES, formatDateES } from '../lib/utils';
+import { cn, daysUntil, greetingES, formatDateES } from '../lib/utils';
 import { CountdownChip } from '../components/ui/CountdownChip';
 import { PriorityBadge } from '../components/ui/PriorityBadge';
 import { calculatePriorityScore } from '../lib/priority';
-import { requestNotificationPermission, scheduleExamReminders } from '../lib/notifications';
-import { Button } from '../components/ui/Button';
-import { Skeleton } from '../components/ui/Skeleton';
 
-// ─── Stat Card w/ Animated Number ──────────────────────────────────────────────
-interface StatCardProps {
-  label: string;
-  value: number | string;
-  suffix?: string;
-  sublabel?: string;
-  colorClass?: string;
-}
+// Feature Components
+import { StatCardsRow } from '../features/dashboard/components/StatCardsRow';
+import { MiniPlanner } from '../features/dashboard/components/MiniPlanner';
 
-const AnimatedNumber: React.FC<{ n: number }> = ({ n }) => {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const start = 0;
-    const duration = 1000;
-    const startTime = performance.now();
-    const animate = (time: number) => {
-      const elapsed = time - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easing = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-      setCount(Math.round(start + (n - start) * easing));
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [n]);
-  return <span>{count}</span>;
-};
-
-const StatCard: React.FC<StatCardProps> = ({ label, value, suffix, sublabel, colorClass }) => (
-  <motion.div variants={{ hidden: { opacity: 0, scale: 0.95 }, show: { opacity: 1, scale: 1 } }} className={cn("card flex flex-col justify-between min-h-[110px]", colorClass)}>
-    <p className="label">{label}</p>
-    <div className="mt-auto">
-      <h3 className="text-3xl font-semibold tracking-tight text-text-primary">
-        {typeof value === 'number' ? <AnimatedNumber n={value} /> : value}
-        {suffix && <span className="text-xl text-text-muted ml-0.5">{suffix}</span>}
-      </h3>
-      {sublabel && <p className="text-xs text-text-secondary mt-1">{sublabel}</p>}
-    </div>
-  </motion.div>
-);
-
-// ─── Mini Planner Component ────────────────────────────────────────────────────
-export const MiniPlanner: React.FC<{ blocks: any[] }> = ({ blocks }) => {
-  const days = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-  const grid = Array.from({ length: 7 }, () => Array.from({ length: 3 }, () => null as string | null));
-  
-  blocks.forEach(b => {
-    const slot = b.startHour < 13 ? 0 : b.startHour < 18 ? 1 : 2;
-    grid[b.day][slot] = b.category;
-  });
-
-  return (
-    <div className="card mt-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Calendar size={18} className="text-text-muted" />
-        <h2 className="text-sm font-semibold tracking-[-0.2px] text-text-primary">Carga Semanal</h2>
-      </div>
-      <div className="flex justify-between items-start gap-2">
-        {grid.map((daySlots, d) => (
-          <div key={d} className="flex flex-col gap-1.5 flex-1 items-center">
-            <span className="text-[10px] uppercase font-medium text-text-faint">{days[d]}</span>
-            {daySlots.map((cat, i) => (
-              <div 
-                key={i} 
-                className="w-full aspect-[2/1] rounded max-w-[40px] transition-colors"
-                style={{ backgroundColor: cat ? `var(--accent${cat==='estudio'?'-orange':cat==='emprendimiento'?'-soft':cat==='proyecto'?'-green':''})` : 'transparent', opacity: cat ? 0.9 : 1, ...(cat?{}: { backgroundColor: 'var(--bg-elevated)', border: '0.5px solid var(--border)'}) }}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-2 mt-5 justify-center">
-        {Object.keys(CAT_COLORS).map(cat => (
-           <div key={cat} className="flex items-center gap-1.5 label text-[9px]">
-             <span className={cn("w-1.5 h-1.5 rounded-full", cat==='facultad'?'bg-amber':cat==='estudio'?'bg-orange':cat==='proyecto'?'bg-green':cat==='emprendimiento'?'bg-amber-soft':'bg-text-muted')} />
-             {cat}
-           </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Dashboard ──────────────────────────────────────────────────────────────────
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { exams, subjectStatuses, addExam, loading: examsLoading } = useExams();
-  const { blocks, addBlock, loading: blocksLoading } = useWeekBlocks();
-  const { habits, toggleDay, addHabit, loading: habitsLoading } = useHabits();
+  const { exams, subjectStatuses, loading: examsLoading } = useExams();
+  const { blocks, loading: blocksLoading } = useWeekBlocks();
+  const { habits, toggleDay, loading: habitsLoading } = useHabits();
   const { materias } = useMaterias();
 
-  // Seed Logic
-  useEffect(() => {
-    const seed = async () => {
-      if (!user) return;
-      const key = `fos-seeded-${user.id}`;
-      if (localStorage.getItem(key)) return;
-      if (examsLoading || blocksLoading || habitsLoading) return;
-      
-      if (exams.length === 0 && blocks.length === 0 && habits.length === 0) {
-        for (const e of SEED_EXAMS) await addExam(e);
-        for (const b of SEED_BLOCKS) await addBlock(b as any);
-        for (const h of SEED_HABITS) await addHabit(h);
-        localStorage.setItem(key, 'true');
-      } else {
-        localStorage.setItem(key, 'true');
-      }
-    };
-    seed();
-  }, [user, exams.length, blocks.length, habits.length, examsLoading, blocksLoading, habitsLoading]);
-  const [showNotifBanner, setShowNotifBanner] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const now = new Date();
@@ -150,43 +48,21 @@ export const Dashboard: React.FC = () => {
 
   const containerVars = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if ('Notification' in window && Notification.permission === 'default') {
-        if (!localStorage.getItem('fos-notif-dismissed')) {
-          setShowNotifBanner(true);
-        }
-      }
-    }, 30000);
-    return () => clearTimeout(t);
-  }, []);
-
-  const handleNotifActivar = async () => {
-    setShowNotifBanner(false);
-    const granted = await requestNotificationPermission();
-    if (granted) scheduleExamReminders(exams);
-  };
-
-  const handleNotifDismiss = () => {
-    setShowNotifBanner(false);
-    localStorage.setItem('fos-notif-dismissed', 'true');
-  };
-
   const activeAlerts = subjectStatuses.filter(s => 
     (s.hasLost || s.currentFails === s.maxFails - 1) && !dismissedAlerts.has(s.subject)
   );
 
   if (examsLoading || blocksLoading || habitsLoading) {
     return (
-      <div className="max-w-6xl mx-auto h-full flex flex-col pt-8">
-        <Skeleton className="h-10 w-48 mb-8" />
+      <div className="max-w-6xl mx-auto h-full flex flex-col pt-8 animate-pulse">
+        <div className="h-10 w-48 bg-elevated rounded mb-8" />
         <div className="flex-1 min-h-0 pr-1 flex flex-col gap-6 w-full pb-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(k => <Skeleton key={k} className="h-[110px]" />)}
+            {[1, 2, 3, 4].map(k => <div key={k} className="h-[110px] bg-elevated rounded-card" />)}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <Skeleton className="lg:col-span-3 h-[400px]" />
-            <Skeleton className="lg:col-span-2 h-[400px]" />
+            <div className="lg:col-span-3 h-[400px] bg-elevated rounded-card" />
+            <div className="lg:col-span-2 h-[400px] bg-elevated rounded-card" />
           </div>
         </div>
       </div>
@@ -203,7 +79,7 @@ export const Dashboard: React.FC = () => {
           <span>Primer Cuatrimestre</span>
         </p>
         <h1 className="text-2xl font-semibold tracking-[-0.5px] text-text-primary">
-          {greetingES()}, {user?.user_metadata?.full_name?.split(' ')[0] || 'Mateo'}.
+          {greetingES()}, {user?.user_metadata?.full_name?.split(' ')[0] || 'Estudiante'}.
         </h1>
       </header>
 
@@ -211,16 +87,6 @@ export const Dashboard: React.FC = () => {
       <div className="flex-1 overflow-y-auto min-h-0 pr-1">
         <motion.div variants={containerVars} initial="hidden" animate="show" className="flex flex-col gap-6 pb-12">
           
-          {showNotifBanner && (
-            <div className="bg-elevated border border-border rounded-[10px] p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 text-sm">
-              <span className="text-text-primary font-medium">Activá recordatorios para no perderte ningún parcial</span>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleNotifDismiss}>Ahora no</Button>
-                <Button variant="primary" size="sm" onClick={handleNotifActivar} className="!bg-amber !text-[#17130b]">Activar</Button>
-              </div>
-            </div>
-          )}
-
           {/* Regularidad Alerts */}
           {activeAlerts.length > 0 && (
             <div className="flex flex-col gap-2">
@@ -244,30 +110,15 @@ export const Dashboard: React.FC = () => {
           )}
 
           {/* Stats Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Exámenes" value={exams.length} sublabel={`${pendingCount} pendientes`} />
-            <StatCard label="Promedio" value={avg} sublabel={`${graded.length} notas cargadas`} />
-            <StatCard 
-              label="Carga Semanal" 
-              value={weeklyLoad} suffix="h" sublabel="Estudio + Facultad"
-              colorClass={weeklyLoad > 40 ? "border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.05)]" : weeklyLoad > 35 ? "border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.05)]" : ""} 
-            />
-            {upcomingExams.length > 0 ? (
-               <Link to="/examenes" className="block group">
-                 <StatCard 
-                   label="Próximo desafío" 
-                   value={daysUntil(upcomingExams[0].date)} suffix="días" 
-                   sublabel={upcomingExams[0].subject.split(' ')[0] + '...'} 
-                   colorClass="hover:border-amber/50 transition-colors relative"
-                 />
-                 <div className="absolute top-4 right-4 text-amber opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0">
-                   <ArrowRight size={16} />
-                 </div>
-               </Link>
-            ) : (
-               <StatCard label="Próximo desafío" value="–" sublabel="No hay exámenes" />
-            )}
-          </div>
+          <StatCardsRow 
+            examsCount={exams.length}
+            pendingCount={pendingCount}
+            avg={avg}
+            gradedCount={graded.length}
+            weeklyLoad={weeklyLoad}
+            nextExamDays={upcomingExams.length > 0 ? daysUntil(upcomingExams[0].date) : undefined}
+            nextExamSubject={upcomingExams.length > 0 ? upcomingExams[0].subject : undefined}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Left: Upcoming Exams */}
@@ -292,6 +143,9 @@ export const Dashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
+              <Link to="/examenes" className="flex items-center gap-2 text-[11px] font-bold text-amber hover:underline mt-6">
+                Ver todos los exámenes <ArrowRight size={12} />
+              </Link>
             </motion.div>
 
             {/* Right: Habits & Priority */}
@@ -367,7 +221,6 @@ export const Dashboard: React.FC = () => {
                               {pendingEntregas.slice(0, 2).map(ent => (
                                 <span key={ent.id} className="text-[11px] text-text-muted truncate">⚡ {ent.title} — {daysUntil(ent.dueDate)} días</span>
                               ))}
-                              {pendingEntregas.length > 2 && <span className="text-[10px] text-text-faint">+ {pendingEntregas.length - 2} más</span>}
                             </div>
                           )}
                         </div>

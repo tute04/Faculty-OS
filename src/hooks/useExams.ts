@@ -69,7 +69,15 @@ export function useExams() {
       console.error(error)
       return
     }
-    if (data) setExams(prev => [...prev, data])
+    if (data) {
+      setExams(prev => [...prev, data])
+      // UX: Pedir permiso de notificación solo al crear un examen real
+      if ('Notification' in window && Notification.permission === 'default') {
+        import('../lib/notifications').then(({ requestNotificationPermission }) => {
+          requestNotificationPermission();
+        });
+      }
+    }
   }
 
   const updateExam = async (id: string, updates: Partial<Exam>) => {

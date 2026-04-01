@@ -119,6 +119,8 @@ const AnimatedRoutes = () => {
   );
 };
 
+import { OnboardingFlow } from './features/onboarding/OnboardingFlow';
+
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
   
@@ -136,16 +138,18 @@ const ProtectedLayout = () => {
 
   return (
     <AppProvidersAndLogic>
-      <div className="flex h-screen overflow-hidden bg-base text-text-primary">
-        <Sidebar />
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
-          <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-base to-transparent z-10 pointer-events-none" />
-          <main className="flex-1 overflow-y-auto pb-24 md:pb-0 px-4 md:px-8 xl:px-12 pt-8 scroll-smooth">
-            <AnimatedRoutes />
-          </main>
+      <OnboardingFlow>
+        <div className="flex h-screen overflow-hidden bg-base text-text-primary">
+          <Sidebar />
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
+            <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-base to-transparent z-10 pointer-events-none" />
+            <main className="flex-1 overflow-y-auto pb-24 md:pb-0 px-4 md:px-8 xl:px-12 pt-8 scroll-smooth">
+              <AnimatedRoutes />
+            </main>
+          </div>
+          <MobileTabBar />
         </div>
-        <MobileTabBar />
-      </div>
+      </OnboardingFlow>
     </AppProvidersAndLogic>
   );
 };
