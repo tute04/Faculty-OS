@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, CheckCircle2, ArrowRight, Flame } from 'lucide-react';
+import { BookOpen, CheckCircle2, ArrowRight, Flame, CalendarPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useExams } from '../hooks/useExams';
 import { useWeekBlocks } from '../hooks/useWeekBlocks';
 import { useHabits } from '../hooks/useHabits';
 import { useMaterias } from '../hooks/useMaterias';
 import { useAuth } from '../lib/auth';
-import { cn, daysUntil, greetingES, formatDateES } from '../lib/utils';
+import { cn, daysUntil, greetingES, formatDateES, generateGoogleCalendarUrl } from '../lib/utils';
 import { CountdownChip } from '../components/ui/CountdownChip';
 import { PriorityBadge } from '../components/ui/PriorityBadge';
 import { calculatePriorityScore } from '../lib/priority';
+import { QuickLinks } from '../components/dashboard/QuickLinks';
 
 // Feature Components
 import { StatCardsRow } from '../features/dashboard/components/StatCardsRow';
@@ -162,11 +163,20 @@ export const Dashboard: React.FC = () => {
                   <div key={ex.id} className="flex items-center justify-between p-3 rounded-card bg-base border border-border/50 hover:border-border transition-colors group">
                     <div className="flex flex-col gap-1 min-w-0 pr-4">
                       <p className="text-[13px] font-medium text-text-primary truncate">{ex.subject}</p>
-                      <div className="flex gap-2 text-[11px] text-text-muted">
+                      <div className="flex items-center gap-2 text-[11px] text-text-muted">
                         <span className="uppercase tracking-wide">{ex.type}</span>
                         <span>·</span>
                         <span>{formatDateES(ex.date)}</span>
                       </div>
+                      <a 
+                        href={generateGoogleCalendarUrl(ex)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-[10px] text-amber-soft font-bold mt-1 hover:text-amber transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <CalendarPlus size={12} />
+                        Agendar en Calendar
+                      </a>
                     </div>
                     <CountdownChip days={daysUntil(ex.date)} className="opacity-90 group-hover:opacity-100" />
                   </div>
@@ -260,6 +270,8 @@ export const Dashboard: React.FC = () => {
               </div>
             </motion.div>
           </div>
+
+          <QuickLinks materias={materias} />
 
           <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }}>
             <MiniPlanner blocks={blocks} />
