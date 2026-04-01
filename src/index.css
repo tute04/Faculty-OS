@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root[data-theme="dark"] {
+    --bg-base: #0d0b08;
+    --bg-surface: #121009;
+    --bg-elevated: #17130b;
+    --bg-hover: #1e180e;
+    --bg-sidebar: #121009;
+    --border: #221c12;
+    --border-accent: #2e2010;
+    --text-primary: #f0e8d8;
+    --text-secondary: #8a7a5a;
+    --text-muted: #5a4e3a;
+    --text-faint: #4a3e2a;
+    --accent: #f59e0b;
+    --accent-soft: #d4a86a;
+    --accent-orange: #fb923c;
+    --success: #4ade80;
+    --danger: #ef4444;
+    --warning: #eab308;
+  }
+
+  :root[data-theme="light"] {
+    --bg-base: #faf8f5;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f5f0e8;
+    --bg-hover: #ede8de;
+    --bg-sidebar: #f0ebe0;
+    --border: #e0d8c8;
+    --border-accent: #d4c8a8;
+    --text-primary: #1a1510;
+    --text-secondary: #6b5e48;
+    --text-muted: #9a8a70;
+    --text-faint: #b8a890;
+    --accent: #d97706;
+    --accent-soft: #b45309;
+    --accent-orange: #ea580c;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --warning: #ca8a04;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.1s ease;
+  }
+  *::-webkit-scrollbar { display: none; }
+  
+  /* Prevent transitioning framer-motion generated styles usually applied via inline styles/transform, keeping it general */
+  .motion-div, [style*="scale"], [style*="opacity"] {
+    transition: none !important;
+  }
+}
+
+@layer components {
+  /* ── Cards ─────────────────────────────────── */
+  .card {
+    @apply bg-surface border rounded-[14px] p-[18px];
+    border-color: var(--border);
+    border-width: 0.5px;
+  }
+  :root[data-theme="light"] .card {
+    border-width: 1px;
+  }
+
+  /* ── Buttons ────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-[6px] text-sm font-medium cursor-pointer select-none;
+  }
+  .btn-primary {
+    @apply btn bg-amber text-base hover:bg-amber-soft;
+    color: var(--bg-surface);
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-text-secondary border hover:bg-hover hover:text-text-primary;
+    border-color: var(--border);
+    border-width: 0.5px;
+  }
+  .btn-danger {
+    @apply btn text-red bg-transparent;
+    border-color: var(--danger);
+    border-width: 0.5px;
+    opacity: 0.8;
+  }
+  .btn-danger:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+
+  /* ── Inputs ─────────────────────────────────── */
+  .input {
+    @apply w-full bg-elevated rounded-[6px] px-3 py-2 text-sm text-text-primary placeholder-text-muted outline-none;
+    border: 0.5px solid var(--border);
+  }
+  .input:focus {
+    border-color: var(--accent);
+  }
+
+  /* ── Nav items ──────────────────────────────── */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-[6px] text-sm font-medium text-text-secondary cursor-pointer;
+  }
+  .nav-item:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+  :root[data-theme="light"] .nav-item.active { background-color: #fdf3dc; color: var(--accent); }
+  :root[data-theme="dark"] .nav-item.active { background-color: var(--bg-hover); color: var(--accent); }
+
+  /* ── Labels ─────────────────────────────────── */
+  .label {
+    @apply text-[11px] uppercase tracking-[0.7px] font-medium text-text-muted;
+  }
+
+  /* ── Progress bar ───────────────────────────── */
+  .progress-track {
+    @apply w-full h-1.5 rounded-full bg-elevated;
+  }
+  .progress-fill {
+    @apply h-full rounded-full duration-500;
+  }
+}
