@@ -12,10 +12,7 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return; // Bloquear fetch si no hay usuario confirmado
 
     async function fetchProfile() {
       try {

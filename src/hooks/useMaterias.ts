@@ -46,10 +46,7 @@ export function useMaterias() {
   const syncLock = useRef(false)
 
   useEffect(() => {
-    if (!user?.id) {
-      setLoading(false)
-      return
-    }
+    if (!user?.id) return; // Bloquear fetch si no hay usuario confirmado
 
     const timeout = setTimeout(() => {
       if (loading) {

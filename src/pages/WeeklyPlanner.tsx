@@ -11,7 +11,8 @@ const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', '
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 7);
 
 // ─── Modal Form ─────────────────────────────────────────────────────────────────
-const BlockForm: React.FC<{ initial: Partial<WeekBlock>, onSave: (d: Omit<WeekBlock, 'id'>) => void, onCancel: () => void }> = ({ initial, onSave, onCancel }) => {
+const BlockForm: React.FC<{ initial: Partial<WeekBlock>, onSave: (d: Omit<WeekBlock, 'id'>) => Promise<void> | void, onCancel: () => void }> = ({ initial, onSave, onCancel }) => {
+  const [saving, setSaving] = useState(false);
   const [f, setF] = useState({ 
     day: initial.day ?? 0, 
     startHour: initial.startHour ?? 8, 
@@ -20,10 +21,12 @@ const BlockForm: React.FC<{ initial: Partial<WeekBlock>, onSave: (d: Omit<WeekBl
     label: initial.label ?? '' 
   });
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (f.endHour <= f.startHour) return alert('La hora de fin debe ser posterior al inicio');
-    onSave(f as Omit<WeekBlock, 'id'>);
+    setSaving(true);
+    await onSave(f as Omit<WeekBlock, 'id'>);
+    // UI clears on unmount or in parent
   };
 
   return (
@@ -61,8 +64,8 @@ const BlockForm: React.FC<{ initial: Partial<WeekBlock>, onSave: (d: Omit<WeekBl
         <input className="input" value={f.label} onChange={e=>setF({...f, label: e.target.value})} required placeholder="Ej: Laboratorio de Física" />
       </div>
       <div className="flex justify-end gap-2 mt-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" variant="primary">Agendar</Button>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>Cancelar</Button>
+        <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Agendando...' : 'Agendar'}</Button>
       </div>
     </form>
   );
@@ -161,7 +164,7 @@ export const WeeklyPlanner: React.FC = () => {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Agendar Bloque" size="sm">
         <BlockForm 
           initial={clickedCell ? { day: clickedCell.day as WeekBlock['day'], startHour: clickedCell.hour, endHour: Math.min(clickedCell.hour + 2, 23) } : {}}
-          onSave={d => { addBlock(d); setModalOpen(false); }}
+          onSave={async d => { await addBlock(d); setModalOpen(false); }}
           onCancel={() => setModalOpen(false)}
         />
       </Modal>

@@ -42,10 +42,7 @@ export function useExams() {
   const [filters, setFilters] = useState<ExamFilters>({ subject: '', status: '', type: '' })
 
   useEffect(() => {
-    if (!user?.id) {
-      setLoading(false)
-      return
-    }
+    if (!user?.id) return; // Bloquear fetch si no hay usuario confirmado
 
     let cancelled = false
     const timeout = setTimeout(() => {

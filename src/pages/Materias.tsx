@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Plus, Trash2, ExternalLink, Play, CheckCircle2, Circle, Type, Database as DriveIcon } from 'lucide-react';
+import { BookOpen, Plus, Trash2, ExternalLink, Play, CheckCircle2, Circle, Type, Database as DriveIcon, Edit3 } from 'lucide-react';
 import { useMaterias, Materia, Recurso, NotaRapida } from '../hooks/useMaterias';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
@@ -72,7 +72,7 @@ const DebouncedNota = ({ nota, materiaId, onUpdate, onDelete }: { nota: NotaRapi
 
 export const Materias: React.FC = () => {
   const { 
-    materias, addMateria, deleteMateria,
+    materias, addMateria, updateMateria, deleteMateria,
     addEntrega, updateEntrega, deleteEntrega,
     addRecurso, deleteRecurso,
     addNota, updateNota, deleteNota
@@ -83,10 +83,12 @@ export const Materias: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'entregas' | 'notas' | 'recursos'>('entregas');
   
   const [modalMateria, setModalMateria] = useState(false);
+  const [modalEditMateria, setModalEditMateria] = useState(false);
   const [modalEntrega, setModalEntrega] = useState(false);
   const [modalRecurso, setModalRecurso] = useState(false);
   
   const [fMateria, setFMateria] = useState({ name: '', color: DEFAULT_COLORS[0] });
+  const [fEditMateria, setFEditMateria] = useState({ id: '', name: '', color: DEFAULT_COLORS[0] });
   const [fEntrega, setFEntrega] = useState({ title: '', dueDate: new Date().toISOString().split('T')[0], notes: '' });
   const [fRecurso, setFRecurso] = useState({ label: '', url: '', type: 'drive' as Recurso['type'] });
 
@@ -125,6 +127,12 @@ export const Materias: React.FC = () => {
     addMateria(fMateria.name, fMateria.color);
     setModalMateria(false);
     setFMateria({ name: '', color: DEFAULT_COLORS[0] });
+  };
+
+  const handleUpdateMateria = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMateria(fEditMateria.id, { name: fEditMateria.name, color: fEditMateria.color });
+    setModalEditMateria(false);
   };
 
   const handleSaveEntrega = (e: React.FormEvent) => {
@@ -192,9 +200,22 @@ export const Materias: React.FC = () => {
                 <div className="w-4 h-4 rounded-full shadow-inner" style={{ backgroundColor: activeMateria.color }} />
                 {activeMateria.name}
               </h2>
-              <button onClick={() => { if(confirm('¿Eliminar materia?')) deleteMateria(activeMateria.id) }} className="p-2 text-text-muted hover:text-red hover:bg-hover rounded-lg transition-colors border border-transparent hover:border-border">
-                <Trash2 size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => { setFEditMateria({ id: activeMateria.id, name: activeMateria.name, color: activeMateria.color }); setModalEditMateria(true); }} 
+                  className="p-2 text-text-muted hover:text-amber hover:bg-hover rounded-lg transition-colors border border-transparent hover:border-border"
+                  title="Editar Materia"
+                >
+                  <Edit3 size={16} />
+                </button>
+                <button 
+                  onClick={() => { if(confirm('¿Eliminar materia y todo su contenido?')) deleteMateria(activeMateria.id) }} 
+                  className="p-2 text-text-muted hover:text-red hover:bg-hover rounded-lg transition-colors border border-transparent hover:border-border"
+                  title="Eliminar Materia"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
             
             {/* Tabs */}
@@ -366,6 +387,31 @@ export const Materias: React.FC = () => {
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
             <Button type="button" variant="ghost" onClick={() => setModalMateria(false)} className="h-10 px-6">Cancelar</Button>
             <Button type="submit" variant="primary" className="h-10 px-6">Crear Materia</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={modalEditMateria} onClose={() => setModalEditMateria(false)} title="Editar Materia">
+        <form onSubmit={handleUpdateMateria} className="flex flex-col gap-5 p-1">
+          <div>
+            <label className="label mb-2 block">Nombre de la cursada</label>
+            <input autoFocus className="input h-11" required value={fEditMateria.name} onChange={e => setFEditMateria({...fEditMateria, name: e.target.value})} placeholder="Ej: Análisis Matemático II" />
+          </div>
+          <div>
+            <label className="label mb-2 block">Color identificador</label>
+            <div className="flex gap-2.5">
+              {DEFAULT_COLORS.map(c => (
+                <button
+                  key={c} type="button" onClick={() => setFEditMateria({...fEditMateria, color: c})}
+                  className={cn("w-9 h-9 rounded-full border-2 transition-all shadow-sm", fEditMateria.color === c ? "scale-110" : "border-transparent opacity-60 hover:opacity-100")}
+                  style={{ backgroundColor: c, borderColor: fEditMateria.color === c ? 'white' : 'transparent' }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
+            <Button type="button" variant="ghost" onClick={() => setModalEditMateria(false)} className="h-10 px-6">Cancelar</Button>
+            <Button type="submit" variant="primary" className="h-10 px-6">Guardar Cambios</Button>
           </div>
         </form>
       </Modal>
