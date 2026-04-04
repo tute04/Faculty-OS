@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Exam, SubjectStatus } from '../types'
 
+const normalizeName = (name: string) =>
+  name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 interface ExamFilters {
   subject: string;
   status: string;
@@ -91,8 +94,8 @@ export function useExams() {
         .select('id, name')
         .eq('user_id', user!.id);
       
-      const normalizedNew = exam.subject.trim().toLowerCase();
-      const duplicate = existingMaterias?.find(m => m.name.trim().toLowerCase() === normalizedNew);
+      const normalizedNew = normalizeName(exam.subject);
+      const duplicate = existingMaterias?.find(m => normalizeName(m.name) === normalizedNew);
 
       if (!duplicate) {
         // Colores por defecto para auto-creación

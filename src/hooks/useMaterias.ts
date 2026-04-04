@@ -36,7 +36,7 @@ export interface Materia {
 const DEFAULT_COLORS = ['#f59e0b', '#fb923c', '#4ade80', '#2dd4bf', '#8b5cf6', '#ec4899'];
 
 const normalizeName = (name: string) => {
-  return name.trim().toLowerCase();
+  return name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
 
 export function useMaterias() {

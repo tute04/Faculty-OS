@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, CheckCircle2, ArrowRight, CalendarPlus, Plus } from 'lucide-react';
+import { BookOpen, CheckCircle2, ArrowRight, CalendarPlus, Plus, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useExams } from '../hooks/useExams';
 import { useWeekBlocks } from '../hooks/useWeekBlocks';
@@ -23,7 +23,7 @@ export const Dashboard: React.FC = () => {
   const { blocks, loading: blocksLoading } = useWeekBlocks();
   const { habits, toggleDay, loading: habitsLoading } = useHabits();
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
-  const { materias } = useMaterias();
+  const { materias, updateEntrega } = useMaterias();
 
   const now = new Date();
 
@@ -53,6 +53,23 @@ export const Dashboard: React.FC = () => {
   const activeAlerts = subjectStatuses.filter(s => (s.hasLost || s.currentFails === s.maxFails - 1) && !dismissedAlerts.has(s.subject));
 
   const firstName = getUserFirstName(profile);
+
+  // ── Próximas Entregas ───────────────────────────────────────────────────────
+  type EntregaFlat = { id: string; title: string; dueDate: string; done: boolean; notes?: string; materiaId: string; materiaName: string; color: string };
+
+  const pendingEntregas: EntregaFlat[] = materias
+    .flatMap(m => m.entregas.map(e => ({ ...e, materiaId: m.id, materiaName: m.name, color: m.color })))
+    .filter(e => !e.done)
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 4);
+
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+
+  const handleEntregaDone = async (materiaId: string, entregaId: string) => {
+    setCheckingId(entregaId);
+    await updateEntrega(materiaId, entregaId, { done: true });
+    setCheckingId(null);
+  };
 
   const isStagedLoading = (examsLoading && blocksLoading && habitsLoading);
 
@@ -198,8 +215,8 @@ export const Dashboard: React.FC = () => {
               </Link>
             </motion.div>
 
-            {/* Right: Habits & Priority (Hide on mobile or move below) */}
-            <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }} className="lg:col-span-2 flex-col gap-6 hidden md:flex">
+            {/* Right: Habits, Entregas & Priority */}
+            <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }} className="lg:col-span-2 flex flex-col gap-6">
               <div className="card">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
@@ -236,6 +253,48 @@ export const Dashboard: React.FC = () => {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* ── Próximas Entregas ─────────────────────────────────────── */}
+              <div className="card">
+                <div className="flex items-center gap-3 mb-5">
+                  <Package size={18} className="text-text-muted" />
+                  <h2 className="text-sm font-semibold tracking-[-0.2px] text-text-primary">Próximas Entregas</h2>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {pendingEntregas.length === 0 && (
+                    <p className="text-xs text-text-muted italic">No hay entregas pendientes. ¡Todo al día!</p>
+                  )}
+                  {pendingEntregas.map(e => {
+                    const due = new Date(e.dueDate);
+                    const diffDays = Math.ceil((due.getTime() - Date.now()) / 86400000);
+                    const isOverdue = diffDays < 0;
+                    const isUrgent = diffDays >= 0 && diffDays <= 2;
+                    return (
+                      <div key={e.id} className="flex items-center gap-3 p-2.5 rounded-[10px] border border-border/50 bg-base group hover:border-border transition-colors">
+                        <button
+                          onClick={() => handleEntregaDone(e.materiaId, e.id)}
+                          disabled={checkingId === e.id}
+                          className="shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                          style={{ borderColor: e.color }}
+                          aria-label={`Marcar "${e.title}" como entregada`}
+                        >
+                          {checkingId === e.id && <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: e.color }} />}
+                        </button>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-[12px] font-semibold text-text-primary truncate">{e.title}</span>
+                          <span className="text-[10px] text-text-muted truncate">{e.materiaName}</span>
+                        </div>
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase shrink-0 ml-1",
+                          isOverdue ? "text-red" : isUrgent ? "text-amber" : "text-text-muted"
+                        )}>
+                          {isOverdue ? `hace ${Math.abs(diffDays)}d` : diffDays === 0 ? "hoy" : `en ${diffDays}d`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  </div>
               </div>
 
               <div className="card">
@@ -279,15 +338,6 @@ export const Dashboard: React.FC = () => {
           <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }} className="hidden md:block">
             <MiniPlanner blocks={blocks} />
           </motion.div>
-          
-          {/* Mobile redundant but secondary section */}
-          <div className="md:hidden flex flex-col gap-6">
-            <div className="card">
-              <h2 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-4">Hábitos</h2>
-              {/* ... habits could go here in condensed form ... */}
-              <p className="text-center text-xs text-text-muted p-4 border border-dashed border-border rounded-lg">Ver más en PC</p>
-            </div>
-          </div>
           
         </motion.div>
       </div>
