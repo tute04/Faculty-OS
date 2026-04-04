@@ -28,15 +28,15 @@
   :root[data-theme="light"] {
     --bg-base: #faf8f5;
     --bg-surface: #ffffff;
-    --bg-elevated: #f5f0e8;
-    --bg-hover: #ede8de;
-    --bg-sidebar: #f0ebe0;
-    --border: #e0d8c8;
-    --border-accent: #d4c8a8;
-    --text-primary: #1a1510;
-    --text-secondary: #6b5e48;
-    --text-muted: #9a8a70;
-    --text-faint: #b8a890;
+    --bg-elevated: #f5f1ea;
+    --bg-hover: #ede7db;
+    --bg-sidebar: #f2ede4;
+    --border: #cebfab;
+    --border-accent: #bdaf92;
+    --text-primary: #1c1812;
+    --text-secondary: #6e614b;
+    --text-muted: #95866d;
+    --text-faint: #b4a68c;
     --accent: #d97706;
     --accent-soft: #b45309;
     --accent-orange: #ea580c;
@@ -64,11 +64,14 @@
   }
 
   * {
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+  }
+  
+  .page-container {
     scrollbar-width: none;
     -ms-overflow-style: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.1s ease;
   }
-  *::-webkit-scrollbar { display: none; }
+  .page-container::-webkit-scrollbar { display: none; }
   
   /* Prevent transitioning framer-motion generated styles usually applied via inline styles/transform, keeping it general */
   .motion-div, [style*="scale"], [style*="opacity"] {
@@ -79,64 +82,55 @@
 @layer components {
   /* ── Cards ─────────────────────────────────── */
   .card {
-    @apply bg-surface border rounded-[14px] p-[18px];
+    @apply bg-surface border rounded-[16px] p-5 shadow-sm;
+    border-color: var(--border);
+    border-width: 1px;
+  }
+  :root[data-theme="dark"] .card {
     border-color: var(--border);
     border-width: 0.5px;
-  }
-  :root[data-theme="light"] .card {
-    border-width: 1px;
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.4);
   }
 
   /* ── Buttons ────────────────────────────────── */
   .btn {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-[6px] text-sm font-medium cursor-pointer select-none;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-sm font-bold cursor-pointer select-none transition-all active:scale-95;
   }
   .btn-primary {
-    @apply btn bg-amber text-base hover:bg-amber-soft;
+    @apply btn bg-amber text-base hover:bg-amber-soft shadow-md;
     color: var(--bg-surface);
   }
   .btn-ghost {
-    @apply btn bg-transparent text-text-secondary border hover:bg-hover hover:text-text-primary;
-    border-color: var(--border);
-    border-width: 0.5px;
-  }
-  .btn-danger {
-    @apply btn text-red bg-transparent;
-    border-color: var(--danger);
-    border-width: 0.5px;
-    opacity: 0.8;
-  }
-  .btn-danger:hover {
-    background-color: rgba(239, 68, 68, 0.1);
+    @apply btn bg-transparent text-text-secondary border border-border hover:bg-hover hover:text-text-primary;
   }
 
   /* ── Inputs ─────────────────────────────────── */
   .input {
-    @apply w-full bg-elevated rounded-[6px] px-3 py-2 text-sm text-text-primary placeholder-text-muted outline-none;
-    border: 0.5px solid var(--border);
+    @apply w-full bg-elevated rounded-[10px] px-4 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none border border-border;
   }
   .input:focus {
-    border-color: var(--accent);
+    @apply border-amber ring-2 ring-amber ring-opacity-10;
   }
 
   /* ── Nav items ──────────────────────────────── */
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2 rounded-[6px] text-sm font-medium text-text-secondary cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-[10px] text-[13px] font-bold text-text-secondary cursor-pointer transition-all;
   }
-  .nav-item:hover { background-color: var(--bg-hover); color: var(--text-primary); }
-  :root[data-theme="light"] .nav-item.active { background-color: #fdf3dc; color: var(--accent); }
-  :root[data-theme="dark"] .nav-item.active { background-color: var(--bg-hover); color: var(--accent); }
+  .nav-item:hover { @apply bg-hover text-text-primary; }
+  .nav-item.active { 
+    @apply bg-hover text-amber rounded-l-none border-l-2 border-amber;
+  }
 
   /* ── Labels ─────────────────────────────────── */
   .label {
-    @apply text-[11px] uppercase tracking-[0.7px] font-medium text-text-muted;
+    @apply text-[11px] uppercase tracking-widest font-black text-text-faint antialiased;
   }
 
   /* ── Progress bar ───────────────────────────── */
   .progress-track {
-    @apply w-full h-1.5 rounded-full bg-elevated;
+    @apply w-full h-2 rounded-full bg-elevated border border-border border-opacity-50;
   }
   .progress-fill {
-    @apply h-full rounded-full duration-500;
+    @apply h-full rounded-full duration-700 ease-out;
   }
 }

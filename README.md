@@ -1,89 +1,53 @@
-# Faculty OS
+# Faculty OS 🎓
+A premium academic management system built for students who want to stay organized without the drama.
 
-A personalized academic management system correctly integrated with Supabase.
+## Core Features
+- **Smart Dashboard**: Context-aware greeting and focus section for upcoming exams.
+- **Academic Profile**: Personalized experience based on your University, Career, and Year of study.
+- **Exam Tracker**: Algorithmic priority scoring and urgency-based visual hierarchy.
+- **Weekly Planner**: Manage your university load, study blocks, and personal projects.
 
-## Environment Variables
+## Tech Stack
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Framer Motion.
+- **Backend & Auth**: Supabase (PostgreSQL, Realtime, Auth).
 
-Create a `.env` file in the root directory and add the following keys from your Supabase project:
-```
+---
+
+## Getting Started
+
+### 1. Environment Variables
+Create a `.env` file in the root directory and add your Supabase credentials:
+```bash
 VITE_SUPABASE_URL=your_project_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
+### 2. Supabase Authentication Setup
+To use the new email/password and onboarding flow, configure your Supabase project:
+1. **Authentication > Providers**:
+   - Enable **Email**.
+   - (Optional) Enable **Confirm email** to require verification.
+   - Disable **Google** (or keep enabled if you wish to re-add the logic later).
+2. **Database > Schema**:
+   - Run the migrations found in `supabase/migrations/` to set up the `profiles` table and the `handle_new_user` trigger.
+
+### 3. Installation & Development
+```bash
+npm install
+npm run dev
+```
+
 ---
 
-## React + TypeScript + Vite
+## Authentication Flow
+Faculty OS uses a multi-step onboarding process:
+1. **Account Creation**: Sign up with email and a strong password (min 6 chars).
+2. **Personalization**: Tell us your Name, University, Career, and Year.
+3. **Seed Data**: Your workspace is automatically populated with sample data to get you started immediately.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Password Recovery
+- If you forget your password, use the **Recuperar contraseña** link on the login page.
+- You'll receive a secure link to reset your password and set a new one.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
- 
+---
+Built with ⚡ by Antigravity.

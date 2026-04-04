@@ -285,31 +285,62 @@ export const ExamTracker: React.FC = () => {
                   <AnimatePresence initial={false}>
                     {!isCol && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-col gap-2 overflow-hidden">
-                        {list.map((ex) => (
-                          <div key={ex.id} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-elevated border border-border rounded-[10px] p-3 px-4 group hover:border-amber/20 transition-colors gap-3 min-h-[56px]">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <CustomCountdownChip date={ex.date} status={ex.status} />
-                              <Badge variant={ex.type as 'parcial' | 'final' | 'TP' | 'recuperatorio'} className="!text-[10px] !border-border">{ex.type}</Badge>
-                              <span className="text-[14px] text-text-secondary font-medium">{formatDateES(ex.date)}</span>
-                              {ex.status === 'pendiente' && <PriorityBadge score={calculatePriorityScore(ex, blocks)} />}
-                            </div>
-                            <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                              <div className="flex items-center gap-3">
-                                {ex.grade !== undefined && <span className="text-amber text-lg font-bold min-w-[20px] text-center">{ex.grade}</span>}
-                                <span className={cn("text-[11px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border", 
-                                  ex.status==='pendiente' ? "border-amber/30 text-amber bg-amber/5" :
-                                  ex.status==='aprobado' ? "border-green/30 text-green bg-green/5" :
-                                  ex.status==='desaprobado' ? "border-red/30 text-red bg-red/5" : "border-border text-text-muted bg-surface"
-                                )}>{ex.status}</span>
+                        {list.sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime()).map((ex) => {
+                          const days = daysUntil(ex.date);
+                          const isUrgent = ex.status === 'pendiente' && days <= 7 && days >= 0;
+                          const isSoon = ex.status === 'pendiente' && days > 7 && days <= 14;
+                          
+                          return (
+                            <div 
+                              key={ex.id} 
+                              className={cn(
+                                "flex flex-col md:flex-row items-center justify-between bg-surface border border-border rounded-[12px] p-4 group hover:border-amber/20 transition-all gap-4 relative overflow-hidden",
+                                isUrgent && "border-l-[4px] border-l-red",
+                                isSoon && "border-l-[4px] border-l-amber",
+                                ex.status !== 'pendiente' && "opacity-60"
+                              )}
+                            >
+                              <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[15px] font-bold text-text-primary tracking-tight">
+                                    {ex.type} {ex.status === 'aprobado' && '✅'}
+                                  </span>
+                                  <span className="text-[11px] font-bold text-text-faint uppercase tracking-widest">{formatDateES(ex.date)}</span>
+                                </div>
+                                {ex.notes && <p className="text-[12px] text-text-muted truncate max-w-[400px]">{ex.notes}</p>}
+                                {ex.status === 'pendiente' && days >= 0 && (
+                                  <p className={cn("text-[11px] font-bold uppercase", isUrgent ? "text-red" : isSoon ? "text-amber" : "text-text-faint")}>
+                                    {days === 0 ? 'Es hoy' : days === 1 ? 'Mañana' : `Faltan ${days} días`}
+                                  </p>
+                                )}
                               </div>
-                              <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => handleShare(ex)} className="p-1.5 text-text-muted hover:text-amber" title="Compartir"><Share2 size={14}/></button>
-                                <button onClick={() => { setEditing(ex); setModalOpen(true); }} className="p-1.5 text-text-muted hover:text-text-primary" title="Editar"><Pencil size={14}/></button>
-                                <button onClick={() => deleteExam(ex.id)} className="p-1.5 text-text-muted hover:text-red" title="Eliminar"><Trash2 size={14}/></button>
+
+                              <div className="flex items-center gap-6 shrink-0">
+                                <div className="flex flex-col items-end gap-1">
+                                  {ex.grade !== undefined && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[11px] font-bold text-text-faint uppercase">Nota</span>
+                                      <span className={cn("text-xl font-black", ex.grade >= 4 ? "text-green" : "text-red")}>{ex.grade}</span>
+                                    </div>
+                                  )}
+                                  <span className={cn(
+                                    "text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded border",
+                                    ex.status === 'pendiente' ? "bg-amber/10 border-amber/20 text-amber" :
+                                    ex.status === 'aprobado' ? "bg-green/10 border-green/20 text-green" :
+                                    ex.status === 'desaprobado' ? "bg-red/10 border-red/20 text-red" : "bg-elevated border-border text-text-muted"
+                                  )}>
+                                    {ex.status}
+                                  </span>
+                                </div>
+                                <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={() => handleShare(ex)} className="p-2 text-text-muted hover:text-amber bg-elevated rounded-lg border border-border shadow-sm transition-colors"><Share2 size={14}/></button>
+                                  <button onClick={() => { setEditing(ex); setModalOpen(true); }} className="p-2 text-text-muted hover:text-text-primary bg-elevated rounded-lg border border-border shadow-sm transition-colors"><Pencil size={14}/></button>
+                                  <button onClick={() => deleteExam(ex.id)} className="p-2 text-text-muted hover:text-red bg-elevated rounded-lg border border-border shadow-sm transition-colors"><Trash2 size={14}/></button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </motion.div>
                     )}
                   </AnimatePresence>

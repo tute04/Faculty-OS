@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 
@@ -35,73 +35,172 @@ export interface Materia {
 
 const DEFAULT_COLORS = ['#f59e0b', '#fb923c', '#4ade80', '#2dd4bf', '#8b5cf6', '#ec4899'];
 
+const normalizeName = (name: string) => {
+  return name.trim().toLowerCase();
+};
+
 export function useMaterias() {
   const { user } = useAuth()
   const [materias, setMaterias] = useState<Materia[]>([])
   const [loading, setLoading] = useState(true)
+  const syncLock = useRef(false)
 
   useEffect(() => {
-    if (!user) return
-    fetchMaterias()
-  }, [user])
-
-  const fetchMaterias = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('materias')
-      .select(`
-        id, name, color,
-        entregas (id, title, due_date, done, notes),
-        recursos (id, label, url, type),
-        notas (id, content, created_at, updated_at)
-      `)
-      .eq('user_id', user!.id)
-      .order('created_at', { ascending: true })
-    
-    if (error) {
-      console.error(error)
+    if (!user?.id) {
       setLoading(false)
       return
     }
 
-    const mapped: Materia[] = (data ?? []).map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      color: m.color,
-      entregas: (m.entregas || []).map((e: any) => ({
-        id: e.id,
-        title: e.title,
-        dueDate: e.due_date,
-        done: e.done,
-        notes: e.notes
-      })),
-      recursos: (m.recursos || []).map((r: any) => ({
-        id: r.id,
-        label: r.label,
-        url: r.url,
-        type: r.type
-      })),
-      notas: (m.notas || []).map((n: any) => ({
-        id: n.id,
-        content: n.content,
-        createdAt: n.created_at,
-        updatedAt: n.updated_at
-      }))
-    }))
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('useMaterias: Fetch timed out.')
+        setLoading(false)
+      }
+    }, 5000)
+
+    const init = async () => {
+      await cleanupDuplicateMaterias(user.id)
+      await fetchMaterias()
+    }
     
-    setMaterias(mapped)
-    setLoading(false)
+    init().finally(() => {
+      clearTimeout(timeout)
+      setLoading(false)
+    })
+  }, [user?.id])
+
+  const cleanupDuplicateMaterias = async (userId: string) => {
+    try {
+      // Fetch all materias for this user
+      const { data } = await supabase
+        .from('materias')
+        .select('id, name')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+
+      if (!data || data.length === 0) return
+
+      const seen = new Map<string, string>() // normalizedName → id to keep
+      const toDelete: string[] = []
+
+      for (const m of data) {
+        const key = normalizeName(m.name)
+        if (seen.has(key)) {
+          toDelete.push(m.id)
+        } else {
+          seen.set(key, m.id)
+        }
+      }
+
+      if (toDelete.length > 0) {
+        console.log(`useMaterias: Cleaning up ${toDelete.length} duplicates...`)
+        await supabase.from('materias').delete().in('id', toDelete)
+      }
+    } catch (err) {
+      console.error('cleanupDuplicateMaterias error:', err)
+    }
+  }
+
+  const fetchMaterias = async () => {
+    if (!user?.id) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('materias')
+        .select(`
+          id, name, color,
+          entregas (id, title, due_date, done, notes),
+          recursos (id, label, url, type),
+          notas (id, content, created_at, updated_at)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+      
+      if (error) {
+        console.error('useMaterias error:', error)
+        return
+      }
+
+      const mapped: Materia[] = (data ?? []).map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        color: m.color,
+        entregas: (m.entregas || []).map((e: any) => ({
+          id: e.id,
+          title: e.title,
+          dueDate: e.due_date,
+          done: e.done,
+          notes: e.notes
+        })),
+        recursos: (m.recursos || []).map((r: any) => ({
+          id: r.id,
+          label: r.label,
+          url: r.url,
+          type: r.type
+        })),
+        notas: (m.notas || []).map((n: any) => ({
+          id: n.id,
+          content: n.content,
+          createdAt: n.created_at,
+          updatedAt: n.updated_at
+        }))
+      }))
+      
+      setMaterias(mapped)
+    } catch (err) {
+      console.error('useMaterias unexpected error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const addMateria = async (name: string, color: string) => {
+    const norm = normalizeName(name);
+    const existing = materias.find(m => normalizeName(m.name) === norm);
+    if (existing) return existing.id;
+
     const { data, error } = await supabase
       .from('materias')
       .insert({ user_id: user!.id, name, color })
       .select()
       .single()
-    if (error) return console.error(error)
+    if (error) {
+      console.error(error)
+      return null
+    }
     if (data) {
       setMaterias(prev => [...prev, { id: data.id, name: data.name, color: data.color, entregas: [], recursos: [], notas: [] }])
+      return data.id;
+    }
+  }
+
+  const syncWithSubjects = async (subjects: string[]) => {
+    if (syncLock.current || !user || subjects.length === 0) return
+    syncLock.current = true
+
+    try {
+      // Get unique sanitized subject names from args
+      const uniqueSubjects = [...new Set(subjects.map(s => s.trim()))]
+
+      // Get existing materias from current state (or DB if more reliable)
+      const existingNames = new Set(materias.map(m => normalizeName(m.name)))
+
+      // Filter out what we already have
+      const toInsert = uniqueSubjects.filter(s => !existingNames.has(normalizeName(s)))
+
+      if (toInsert.length > 0) {
+        console.log(`useMaterias: Auto-creating ${toInsert.length} missing materias...`)
+        await supabase.from('materias').insert(
+          toInsert.map((name, i) => ({
+            user_id: user.id,
+            name,
+            color: DEFAULT_COLORS[i % DEFAULT_COLORS.length]
+          }))
+        )
+        await fetchMaterias()
+      }
+    } finally {
+      syncLock.current = false
     }
   }
 
@@ -244,20 +343,6 @@ export function useMaterias() {
       ...m,
       notas: m.notas.filter(n => n.id !== notaId)
     } : m))
-  }
-
-  const syncWithSubjects = async (subjects: string[]) => {
-    for (let i = 0; i < subjects.length; i++) {
-      const subj = subjects[i];
-      if (!materias.find(m => m.name === subj)) {
-        let forcedColor = DEFAULT_COLORS[i % DEFAULT_COLORS.length];
-        if (subj.includes('Estática')) forcedColor = '#f59e0b';
-        else if (subj.includes('Mecánica')) forcedColor = '#fb923c';
-        else if (subj.includes('Electrotecnia')) forcedColor = '#4ade80';
-
-        await addMateria(subj, forcedColor);
-      }
-    }
   }
 
   return {

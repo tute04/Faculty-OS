@@ -1,13 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookMarked, BookOpen, CalendarDays, GraduationCap, Sun, Moon, LayoutList, BarChart2, LogOut, Send } from 'lucide-react';
+import {
+  LayoutDashboard, BookMarked, BookOpen, CalendarDays,
+  GraduationCap, Sun, Moon, LayoutList, BarChart2,
+  LogOut, Send, User as UserIcon, Loader2
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useExams } from '../../hooks/useExams';
 import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
-import { daysUntil } from '../../lib/utils';
-import { cn } from '../../lib/utils';
+import { daysUntil, cn } from '../../lib/utils';
 import { CountdownChip } from '../ui/CountdownChip';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,36 +26,36 @@ const navItems = [
 export const Sidebar: React.FC = () => {
   const { exams } = useExams();
   const { theme, toggleTheme } = useTheme();
-  const { user, signOut } = useAuth();
-  
+  const { user, profile, signOut, updateProfile } = useAuth();
+
   const [showPopover, setShowPopover] = useState(false);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [telegramCode, setTelegramCode] = useState<string | null>(null);
   const [loadingCode, setLoadingCode] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  const handleConnectTelegram = async () => {
-    if (!user) return;
-    setLoadingCode(true);
-    setShowTelegramModal(true);
-    setShowPopover(false);
+  const [editData, setEditData] = useState({
+    first_name: '',
+    last_name: '',
+    university: '',
+    career: '',
+    year_of_study: 1
+  });
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    await supabase.from('telegram_link_codes').delete().eq('user_id', user.id);
-    
-    const { error } = await supabase.from('telegram_link_codes').insert({
-      code,
-      user_id: user.id
-    });
-
-    if (error) {
-      setTelegramCode('ERROR');
-    } else {
-      setTelegramCode(code);
+  useEffect(() => {
+    if (profile) {
+      setEditData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        university: profile.university || '',
+        career: profile.career || '',
+        year_of_study: profile.year_of_study || 1
+      });
     }
-    setLoadingCode(false);
-  };
+  }, [profile]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -61,20 +66,67 @@ export const Sidebar: React.FC = () => {
     if (showPopover) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPopover]);
-  
+
+  const handleConnectTelegram = async () => {
+    if (!user) return;
+    setLoadingCode(true);
+    setShowTelegramModal(true);
+    setShowPopover(false);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    await supabase.from('telegram_link_codes').delete().eq('user_id', user.id);
+    const { error } = await supabase.from('telegram_link_codes').insert({ code, user_id: user.id });
+    if (error) setTelegramCode('ERROR');
+    else setTelegramCode(code);
+    setLoadingCode(false);
+  };
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    setSaveError(null);
+    try {
+      const { error } = await updateProfile(editData);
+      if (error) {
+        setSaveError('No se pudo guardar. Intentá de nuevo.');
+        console.error('Save profile error:', error);
+      } else {
+        setShowProfileModal(false);
+      }
+    } catch (err) {
+      setSaveError('Error inesperado al guardar.');
+      console.error('Save profile exception:', err);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setShowPopover(false);
+    try {
+      await signOut();
+    } catch {
+      // signOut handles the redirect internally
+      window.location.href = '/login';
+    }
+  };
+
   const now = new Date();
   const nextExam = exams
     .filter((e) => e.status === 'pendiente' && new Date(e.date) > now)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] ?? null;
 
-  const getInitials = (name?: string | null) => {
-    if (!name) return 'F';
-    return name.substring(0, 2).toUpperCase();
+  const getInitials = () => {
+    if (profile?.first_name) return profile.first_name[0].toUpperCase();
+    if (user?.email) return user.email[0].toUpperCase();
+    return 'F';
   };
 
+  const displayName = profile?.first_name
+    ? `${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''}`
+    : user?.email?.split('@')[0] ?? 'Estudiante';
+
   return (
-    <aside className="hidden md:flex flex-col w-[220px] shrink-0 bg-surface border-r border-[#221c12] h-full z-10 transition-colors">
-      
+    <aside className="hidden md:flex flex-col w-[220px] shrink-0 bg-surface border-r border-border h-full z-10 transition-colors">
+
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-6 py-6 border-b border-border/50">
         <div className="w-6 h-6 rounded flex items-center justify-center bg-amber/10 text-amber">
@@ -97,111 +149,183 @@ export const Sidebar: React.FC = () => {
         ))}
       </nav>
 
-      {/* Footer Items */}
-      <div className="px-4 mt-auto mb-4 flex flex-col gap-2 relative">
-        {/* User Menu */}
-        {user && (
-          <div className="relative w-full" ref={popoverRef}>
-            <button 
-              onClick={() => setShowPopover(!showPopover)}
-              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-hover rounded-[6px] transition-colors"
-            >
-              {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="User avatar" className="w-[32px] h-[32px] rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-[32px] h-[32px] rounded-full bg-amber flex items-center justify-center text-[#17130b] font-bold text-xs shrink-0">
-                  {getInitials(user.user_metadata?.full_name || user.email)}
-                </div>
-              )}
-              <span className="truncate flex-1 text-left">
-                {user.user_metadata?.full_name || user.email?.split('@')[0]}
-              </span>
-            </button>
+      {/* Footer */}
+      <div className="px-4 mt-auto mb-4 flex flex-col gap-2">
 
-            {/* Popover */}
-            {showPopover && (
-              <div className="absolute bottom-[calc(100%+8px)] left-0 w-[240px] bg-elevated border border-border shadow-lg rounded-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex flex-col gap-1 mb-3 pb-3 border-b border-border/50">
-                  <span className="text-sm font-medium text-text-primary line-clamp-1">{user.user_metadata?.full_name || 'Usuario'}</span>
-                  <span className="text-xs text-text-muted line-clamp-1">{user.email}</span>
-                </div>
-                <button 
-                  onClick={handleConnectTelegram}
-                  className="flex items-center gap-2 w-full text-left px-2 py-[6px] text-sm hover:bg-hover rounded transition-colors mb-1 text-text-secondary hover:text-[#0088cc]"
+        {/* User menu */}
+        <div className="relative w-full" ref={popoverRef}>
+          <button
+            onClick={() => setShowPopover(p => !p)}
+            className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-hover rounded-[10px] transition-colors border border-transparent hover:border-border/50"
+          >
+            <div className="w-[28px] h-[28px] rounded-full bg-amber flex items-center justify-center text-[#1a0f00] font-black text-[12px] shrink-0 shadow-sm">
+              {getInitials()}
+            </div>
+            <span className="truncate flex-1 text-left text-[13px] font-bold tracking-tight">
+              {displayName}
+            </span>
+          </button>
+
+          {/* Popover */}
+          {showPopover && (
+            <div className="absolute bottom-[calc(100%+8px)] left-0 w-[260px] bg-elevated border border-border shadow-2xl rounded-2xl p-4 z-50">
+              <div className="flex flex-col gap-1 mb-4 pb-4 border-b border-border/50">
+                <span className="text-sm font-bold text-text-primary">
+                  {profile?.first_name || user?.email?.split('@')[0] || 'Estudiante'} {profile?.last_name}
+                </span>
+                <span className="text-[11px] text-text-muted">{profile?.career || 'Sin carrera configurada'}</span>
+                <span className="text-[11px] text-text-faint font-bold uppercase tracking-widest">{profile?.university}</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => { setShowProfileModal(true); setShowPopover(false); }}
+                  className="flex items-center gap-3 w-full text-left px-3 py-2 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-hover rounded-lg transition-all"
                 >
-                  <Send size={14} />
+                  <UserIcon size={14} className="opacity-70" />
+                  <span>Editar perfil</span>
+                </button>
+                <button
+                  onClick={handleConnectTelegram}
+                  className="flex items-center gap-3 w-full text-left px-3 py-2 text-[13px] font-medium text-text-secondary hover:text-[#0088cc] hover:bg-[#0088cc]/5 rounded-lg transition-all"
+                >
+                  <Send size={14} className="opacity-70" />
                   <span>Conectar Telegram</span>
                 </button>
-                <button 
-                  onClick={signOut}
-                  className="flex items-center gap-2 w-full text-left px-2 py-[6px] text-sm text-red hover:bg-red/10 rounded transition-colors"
+                <div className="my-1 border-t border-border/30" />
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-3 w-full text-left px-3 py-2 text-[13px] font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                 >
                   <LogOut size={14} />
                   <span>Cerrar sesión</span>
                 </button>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* Theme Toggle */}
-        <button onClick={toggleTheme} className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-hover rounded-[6px] transition-colors group">
-          {theme === 'dark' ? <Sun size={16} className="group-hover:text-amber" /> : <Moon size={16} className="group-hover:text-amber" />}
-          <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center w-10 h-10 mx-auto text-text-muted hover:text-amber hover:bg-hover rounded-xl transition-all border border-border/40 shadow-sm group"
+          title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+        >
+          {theme === 'dark'
+            ? <Sun size={18} className="group-hover:rotate-45 transition-transform" />
+            : <Moon size={18} className="group-hover:-rotate-12 transition-transform" />}
         </button>
       </div>
 
       {/* Next Exam Widget */}
       {nextExam && (
-        <div className="mx-4 mb-4 p-4 rounded-card bg-elevated border border-border border-accent shadow-sm">
-          <p className="label mb-2">Próximo Examen</p>
-          <p className="text-[13px] text-text-primary font-medium leading-[1.3] line-clamp-2 mb-1.5">
-            {nextExam.subject}
+        <div className="mx-3 mb-4 p-3 rounded-[14px] bg-elevated/50 border border-border/80 shadow-sm group hover:border-amber/20 transition-colors">
+          <p className="text-[10px] font-bold text-text-faint uppercase tracking-widest mb-2 flex items-center gap-2">
+            <span className="w-1 h-1 rounded-full bg-amber" />
+            Próximo Examen
           </p>
-          <p className="text-[11px] text-text-muted capitalize mb-3">
-            {nextExam.type}
-          </p>
-          <CountdownChip days={daysUntil(nextExam.date)} />
+          <div className="flex flex-col gap-0.5 mb-3">
+            <p className="text-[13px] text-text-primary font-bold leading-tight line-clamp-2">{nextExam.subject}</p>
+            <p className="text-[10px] text-text-muted font-medium uppercase tracking-wide">{nextExam.type}</p>
+          </div>
+          <CountdownChip days={daysUntil(nextExam.date)} className="w-full justify-center py-1 opacity-90 group-hover:opacity-100" />
         </div>
       )}
-    {/* Telegram Connect Modal */}
-    {showTelegramModal && (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0d0b08]/80 backdrop-blur-sm p-4">
-        <div className="w-full max-w-sm bg-surface border border-border shadow-2xl rounded-2xl p-6 relative">
-          <button onClick={() => setShowTelegramModal(false)} className="absolute top-4 right-4 text-text-muted hover:text-text-primary transition-colors">✕</button>
-          <div className="w-10 h-10 rounded-full bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center mb-4">
-            <Send size={20} />
+
+      {/* Telegram Modal */}
+      <Modal open={showTelegramModal} onClose={() => setShowTelegramModal(false)} title="Conectar Telegram">
+        <div className="flex flex-col gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center mb-2">
+            <Send size={24} strokeWidth={2.5} />
           </div>
-          <h3 className="text-lg font-semibold tracking-tight text-text-primary mb-2">Conectar Telegram</h3>
-          <p className="text-sm text-text-secondary leading-relaxed mb-6">
-            Llevá Faculty OS a todos lados. Recibí recordatorios automáticos de tus parciales y agregá exámenes o entregas conversando con el bot usando lenguaje natural.
+          <p className="text-sm text-text-secondary leading-relaxed">
+            Recordatorios automáticos y carga de datos por chat usando lenguaje natural.
           </p>
-          
-          <div className="bg-elevated border border-border rounded-xl p-4 flex flex-col items-center justify-center gap-2 mb-6 text-center">
-            <p className="text-sm text-text-muted">1. Abrí el bot en Telegram</p>
-            <a href="https://t.me/FacultyOSBot" target="_blank" rel="noreferrer" className="text-[#0088cc] font-medium text-sm hover:underline">@FacultyOSBot</a>
-            
-            <div className="w-full h-[1px] bg-border my-2" />
-            
-            <p className="text-sm text-text-muted">2. Enviá este mensaje</p>
-            {loadingCode ? (
-              <div className="h-8 flex items-center justify-center">
-                <div className="h-4 w-4 border-2 border-[#0088cc] border-t-transparent animate-spin rounded-full" />
-              </div>
-            ) : telegramCode === 'ERROR' ? (
-              <span className="text-red font-medium text-sm">Error al generar código</span>
-            ) : (
-              <code className="text-lg font-mono font-bold text-text-primary bg-hover px-3 py-1 rounded select-all cursor-pointer">/vincular {telegramCode}</code>
-            )}
+          <div className="bg-elevated border border-border rounded-xl p-5 flex flex-col items-center gap-3 text-center">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-faint mb-1">1. Abrí el bot</p>
+              <a href="https://t.me/FacultyOSBot" target="_blank" rel="noreferrer" className="text-[#0088cc] font-bold text-sm hover:underline">@FacultyOSBot</a>
+            </div>
+            <div className="w-full h-[1px] bg-border/50" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-faint mb-1">2. Enviá este código</p>
+              {loadingCode
+                ? <Loader2 className="animate-spin text-amber" />
+                : <code className="text-xl font-mono font-bold text-text-primary tracking-wider bg-hover px-4 py-2 rounded-lg border border-border select-all cursor-copy">/vincular {telegramCode}</code>
+              }
+            </div>
+          </div>
+          <Button onClick={() => setShowTelegramModal(false)} className="w-full h-11 !bg-amber !text-[#1a0f00] font-bold mt-2">
+            Listo, ya lo envié
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Profile Edit Modal */}
+      <Modal open={showProfileModal} onClose={() => { setShowProfileModal(false); setSaveError(null); }} title="Editar Perfil">
+        <div className="flex flex-col gap-5 py-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-text-faint ml-1">Nombre</label>
+              <input
+                value={editData.first_name}
+                onChange={e => setEditData({ ...editData, first_name: e.target.value })}
+                className="w-full h-11 bg-base border border-border rounded-xl px-4 text-sm focus:border-amber outline-none transition-colors"
+                placeholder="Mateo"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-text-faint ml-1">Apellido</label>
+              <input
+                value={editData.last_name}
+                onChange={e => setEditData({ ...editData, last_name: e.target.value })}
+                className="w-full h-11 bg-base border border-border rounded-xl px-4 text-sm focus:border-amber outline-none transition-colors"
+                placeholder="Pérez"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-text-faint ml-1">Universidad</label>
+            <input
+              value={editData.university}
+              onChange={e => setEditData({ ...editData, university: e.target.value })}
+              className="w-full h-11 bg-base border border-border rounded-xl px-4 text-sm focus:border-amber outline-none transition-colors"
+              placeholder="UTN FRC"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-text-faint ml-1">Carrera</label>
+            <input
+              value={editData.career}
+              onChange={e => setEditData({ ...editData, career: e.target.value })}
+              className="w-full h-11 bg-base border border-border rounded-xl px-4 text-sm focus:border-amber outline-none transition-colors"
+              placeholder="Ingeniería Industrial"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-text-faint ml-1">Año de estudio</label>
+            <div className="flex bg-base p-1 rounded-xl border border-border">
+              {[1, 2, 3, 4, 5, 6].map(y => (
+                <button
+                  key={y}
+                  onClick={() => setEditData({ ...editData, year_of_study: y })}
+                  className={cn('flex-1 py-2 text-xs font-bold rounded-lg transition-all', editData.year_of_study === y ? 'bg-amber text-[#1a0f00]' : 'text-text-muted hover:text-text-secondary')}
+                >
+                  {y}°
+                </button>
+              ))}
+            </div>
           </div>
 
-          <button onClick={() => setShowTelegramModal(false)} className="w-full py-2.5 bg-amber text-[#17130b] font-medium rounded-lg hover:bg-amber/90 transition-colors">
-            Listo, ya lo envié
-          </button>
-        </div>
-      </div>
-    )}
-  </aside>
-);
-};
+          {saveError && (
+            <p className="text-red-400 text-sm font-medium">{saveError}</p>
+          )}
 
+          <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full h-12 !bg-amber !text-[#1a0f00] font-black mt-2">
+            {savingProfile ? 'Guardando...' : 'Guardar cambios'}
+          </Button>
+        </div>
+      </Modal>
+    </aside>
+  );
+};

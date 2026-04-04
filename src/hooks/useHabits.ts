@@ -9,31 +9,52 @@ export function useHabits() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) return
-    fetchHabits()
-  }, [user])
-
-  const fetchHabits = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('habits')
-      .select('id, label, target_days, completed_days, color')
-      .eq('user_id', user!.id)
-      .order('created_at', { ascending: true })
-    if (error) {
-      console.error(error)
+    if (!user?.id) {
       setLoading(false)
       return
     }
-    const mapped = (data ?? []).map((h: any) => ({
-      id: h.id,
-      label: h.label,
-      targetDays: h.target_days,
-      completedDays: h.completed_days,
-      color: h.color
-    }))
-    setHabits(mapped)
-    setLoading(false)
+
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('useHabits: Fetch timed out.')
+        setLoading(false)
+      }
+    }, 5000)
+
+    fetchHabits().finally(() => {
+      clearTimeout(timeout)
+      setLoading(false)
+    })
+  }, [user?.id])
+
+  const fetchHabits = async () => {
+    if (!user?.id) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('habits')
+        .select('id, label, target_days, completed_days, color')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+      
+      if (error) {
+        console.error('useHabits error:', error)
+        return
+      }
+      
+      const mapped = (data ?? []).map((h: any) => ({
+        id: h.id,
+        label: h.label,
+        targetDays: h.target_days,
+        completedDays: h.completed_days,
+        color: h.color
+      }))
+      setHabits(mapped)
+    } catch (err) {
+      console.error('useHabits unexpected error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const addHabit = async (habit: Omit<Habit, 'id'>) => {

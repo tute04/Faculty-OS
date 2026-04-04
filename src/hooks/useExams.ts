@@ -39,44 +39,69 @@ export function useExams() {
   const [filters, setFilters] = useState<ExamFilters>({ subject: '', status: '', type: '' })
 
   useEffect(() => {
-    if (!user) return
-    fetchExams()
-  }, [user])
-
-  const fetchExams = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('user_id', user!.id)
-      .order('date', { ascending: true })
-    if (error) {
-      console.error(error)
+    if (!user?.id) {
       setLoading(false)
       return
     }
-    setExams(data ?? [])
-    setLoading(false)
+
+    let cancelled = false
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        console.warn('useExams: Fetch timed out.')
+        setLoading(false)
+      }
+    }, 5000)
+
+    fetchExams().finally(() => {
+      cancelled = true
+      clearTimeout(timeout)
+    })
+
+    return () => { cancelled = true; clearTimeout(timeout) }
+  }, [user?.id])
+
+  const fetchExams = async () => {
+    if (!user?.id) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('exams')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true })
+      
+      if (error) {
+        console.error('useExams error:', error)
+        return
+      }
+      setExams(data ?? [])
+    } catch (err) {
+      console.error('useExams unexpected error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const addExam = async (exam: Omit<Exam, 'id'>) => {
     // Asegurar que la materia exista antes de crear el examen
     if (exam.subject) {
-      const { data: existingMateria } = await supabase
+      // Find existing materia (case insensitive)
+      const { data: existingMaterias } = await supabase
         .from('materias')
-        .select('id')
-        .eq('user_id', user!.id)
-        .eq('name', exam.subject)
-        .maybeSingle();
+        .select('id, name')
+        .eq('user_id', user!.id);
+      
+      const normalizedNew = exam.subject.trim().toLowerCase();
+      const duplicate = existingMaterias?.find(m => m.name.trim().toLowerCase() === normalizedNew);
 
-      if (!existingMateria) {
+      if (!duplicate) {
         // Colores por defecto para auto-creación
         const defaultColors = ['#f59e0b', '#fb923c', '#4ade80', '#2dd4bf', '#8b5cf6', '#ec4899'];
         const randomColor = defaultColors[Math.floor(Math.random() * defaultColors.length)];
 
         const { error: matError } = await supabase.from('materias').insert({
           user_id: user!.id,
-          name: exam.subject,
+          name: exam.subject.trim(),
           color: randomColor
         });
 

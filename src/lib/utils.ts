@@ -68,3 +68,15 @@ export function generateGoogleCalendarUrl(exam: { subject: string; type: string;
     return "#";
   }
 }
+
+export function getCuatrimestre(): string {
+  const month = new Date().getMonth() + 1; // 1-12
+  if (month >= 3 && month <= 7) return 'Primer Cuatrimestre';
+  if (month >= 8 && month <= 12) return 'Segundo Cuatrimestre';
+  return 'Receso / Cursos de Verano';
+}
+
+export function getUserFirstName(profile: any): string {
+  const name = profile?.first_name || 'Estudiante';
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}

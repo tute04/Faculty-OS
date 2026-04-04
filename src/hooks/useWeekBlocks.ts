@@ -9,32 +9,52 @@ export function useWeekBlocks() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) return
-    fetchBlocks()
-  }, [user])
-
-  const fetchBlocks = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('week_blocks')
-      .select('id, day, start_hour, end_hour, category, label')
-      .eq('user_id', user!.id)
-    if (error) {
-      console.error(error)
+    if (!user?.id) {
       setLoading(false)
       return
     }
-    // map snake_case to camelCase
-    const mapped = (data ?? []).map((b: any) => ({
-      id: b.id,
-      day: b.day as WeekBlock['day'],
-      startHour: b.start_hour,
-      endHour: b.end_hour,
-      category: b.category,
-      label: b.label
-    } as WeekBlock))
-    setBlocks(mapped)
-    setLoading(false)
+
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('useWeekBlocks: Fetch timed out.')
+        setLoading(false)
+      }
+    }, 5000)
+
+    fetchBlocks().finally(() => {
+      clearTimeout(timeout)
+      setLoading(false)
+    })
+  }, [user?.id])
+
+  const fetchBlocks = async () => {
+    if (!user?.id) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('week_blocks')
+        .select('id, day, start_hour, end_hour, category, label')
+        .eq('user_id', user.id)
+      
+      if (error) {
+        console.error('useWeekBlocks error:', error)
+        return
+      }
+      
+      const mapped = (data ?? []).map((b: any) => ({
+        id: b.id,
+        day: b.day as WeekBlock['day'],
+        startHour: b.start_hour,
+        endHour: b.end_hour,
+        category: b.category,
+        label: b.label
+      } as WeekBlock))
+      setBlocks(mapped)
+    } catch (err) {
+      console.error('useWeekBlocks unexpected error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const addBlock = async (block: Omit<WeekBlock, 'id'>) => {
