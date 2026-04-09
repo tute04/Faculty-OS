@@ -32,16 +32,16 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, suffix, sublabel, className }) => (
   <motion.div 
-    variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} 
-    className={cn("card flex flex-col justify-between min-h-[110px] group transition-all duration-300", className)}
+    variants={{ hidden: { opacity: 0, y: 5 }, show: { opacity: 1, y: 0 } }} 
+    className={cn("card flex flex-col justify-between min-h-[110px] group transition-all", className)}
   >
-    <p className="label text-text-secondary group-hover:text-amber transition-colors">{label}</p>
-    <div className="mt-auto">
-      <h3 className="text-3xl font-semibold tracking-tight text-text-primary">
+    <p className="text-[12px] uppercase tracking-wider font-bold text-text-muted">{label}</p>
+    <div className="mt-auto pt-3">
+      <h3 className="text-[28px] font-bold text-text-primary leading-none">
         {typeof value === 'number' ? <AnimatedNumber n={value} /> : value}
-        {suffix && <span className="text-xl text-text-muted ml-0.5">{suffix}</span>}
+        {suffix && <span className="text-[16px] text-text-muted ml-1 font-semibold">{suffix}</span>}
       </h3>
-      {sublabel && <p className="text-xs text-text-secondary mt-1">{sublabel}</p>}
+      {sublabel && <p className="text-[12px] text-text-secondary mt-1 font-medium">{sublabel}</p>}
     </div>
   </motion.div>
 );
@@ -71,7 +71,7 @@ export const StatCardsRow: React.FC<StatCardsRowProps> = ({
       <StatCard 
         label="Total Exámenes" 
         value={examsCount} 
-        sublabel={`${pendingCount} pendientes`} 
+        sublabel={`${pendingCount} por hacer`} 
       />
       <StatCard 
         label="Promedio" 
@@ -80,8 +80,8 @@ export const StatCardsRow: React.FC<StatCardsRowProps> = ({
       />
       <StatCard 
         label="Carga Semanal" 
-        value={weeklyLoad} 
-        suffix="h" 
+        value={weeklyLoad > 0 ? weeklyLoad : "—"} 
+        suffix={weeklyLoad > 0 ? "h" : ""} 
         sublabel="Estudio + Facultad"
         className={weeklyLoad > 40 ? "border-red/30 bg-red/5" : weeklyLoad > 30 ? "border-amber/30 bg-amber/5" : ""} 
       />

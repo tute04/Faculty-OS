@@ -1,13 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseKey) {
-  console.warn("⚠️ Las variables de entorno de Supabase no están configuradas correctamente en Vercel.")
-}
-
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-url.supabase.co',
-  supabaseKey || 'placeholder-key'
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    auth: {
+      storage: window.localStorage,
+      storageKey: 'faculty-os-token-v5', 
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+      lock: (name, acquireTimeout, fn) => {
+        // BYPASS DEFINITIVO: Firma correcta del LockFunc en @supabase/auth-js para evitar bucles de Web Locks en Vite
+        return fn()
+      }
+    }
+  }
 )

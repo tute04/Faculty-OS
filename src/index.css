@@ -6,43 +6,43 @@
 
 @layer base {
   :root[data-theme="dark"] {
-    --bg-base: #0d0b08;
-    --bg-surface: #121009;
-    --bg-elevated: #17130b;
-    --bg-hover: #1e180e;
-    --bg-sidebar: #121009;
-    --border: #221c12;
-    --border-accent: #2e2010;
-    --text-primary: #f0e8d8;
-    --text-secondary: #8a7a5a;
-    --text-muted: #5a4e3a;
-    --text-faint: #4a3e2a;
-    --accent: #f59e0b;
-    --accent-soft: #d4a86a;
-    --accent-orange: #fb923c;
-    --success: #4ade80;
-    --danger: #ef4444;
-    --warning: #eab308;
+    --bg-base: 9 9 11;
+    --bg-surface: 24 24 27;
+    --bg-elevated: 39 39 42;
+    --bg-hover: 39 39 42;
+    --bg-sidebar: 24 24 27;
+    --border: 39 39 42;
+    --border-accent: 63 63 70;
+    --text-primary: 250 250 250;
+    --text-secondary: 161 161 170;
+    --text-muted: 113 113 122;
+    --text-faint: 82 82 91;
+    --accent: 59 130 246; /* Blue 500 */
+    --accent-soft: 96 165 250; /* Blue 400 */
+    --accent-orange: 249 115 22;
+    --success: 16 185 129;
+    --danger: 239 68 68;
+    --warning: 245 158 11;
   }
 
   :root[data-theme="light"] {
-    --bg-base: #faf8f5;
-    --bg-surface: #ffffff;
-    --bg-elevated: #f5f1ea;
-    --bg-hover: #ede7db;
-    --bg-sidebar: #f2ede4;
-    --border: #cebfab;
-    --border-accent: #bdaf92;
-    --text-primary: #1c1812;
-    --text-secondary: #6e614b;
-    --text-muted: #95866d;
-    --text-faint: #b4a68c;
-    --accent: #d97706;
-    --accent-soft: #b45309;
-    --accent-orange: #ea580c;
-    --success: #16a34a;
-    --danger: #dc2626;
-    --warning: #ca8a04;
+    --bg-base: 244 244 245; /* Zinc 100 */
+    --bg-surface: 255 255 255;
+    --bg-elevated: 244 244 245;
+    --bg-hover: 244 244 245;
+    --bg-sidebar: 255 255 255;
+    --border: 228 228 231; /* Zinc 200 */
+    --border-accent: 212 212 216; /* Zinc 300 */
+    --text-primary: 24 24 27; /* Zinc 900 */
+    --text-secondary: 82 82 91; /* Zinc 600 */
+    --text-muted: 113 113 122; /* Zinc 500 */
+    --text-faint: 161 161 170; /* Zinc 400 */
+    --accent: 37 99 235; /* Blue 600 */
+    --accent-soft: 59 130 246; /* Blue 500 */
+    --accent-orange: 234 88 12;
+    --success: 5 150 105;
+    --danger: 220 38 38;
+    --warning: 217 119 6;
   }
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -82,34 +82,27 @@
 @layer components {
   /* ── Cards ─────────────────────────────────── */
   .card {
-    @apply bg-surface border rounded-[16px] p-5 shadow-sm;
-    border-color: var(--border);
-    border-width: 1px;
-  }
-  :root[data-theme="dark"] .card {
-    border-color: var(--border);
-    border-width: 0.5px;
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.4);
+    @apply bg-surface rounded-[16px] p-6 shadow-sm border border-border;
   }
 
   /* ── Buttons ────────────────────────────────── */
   .btn {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-sm font-bold cursor-pointer select-none transition-all active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold cursor-pointer select-none transition-all active:scale-95;
   }
   .btn-primary {
-    @apply btn bg-amber text-base hover:bg-amber-soft shadow-md;
-    color: var(--bg-surface);
+    @apply bg-amber text-white hover:bg-amber-soft shadow-sm;
   }
   .btn-ghost {
-    @apply btn bg-transparent text-text-secondary border border-border hover:bg-hover hover:text-text-primary;
+    @apply bg-transparent text-text-secondary hover:bg-hover hover:text-text-primary border border-border;
   }
 
   /* ── Inputs ─────────────────────────────────── */
   .input {
-    @apply w-full bg-elevated rounded-[10px] px-4 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none border border-border;
+    @apply w-full bg-elevated rounded-[10px] px-4 py-2.5 text-[14px] text-text-primary placeholder-text-muted outline-none border border-border transition-all;
   }
   .input:focus {
-    @apply border-amber ring-2 ring-amber ring-opacity-10;
+    @apply border-amber ring-2;
+    --tw-ring-color: rgb(var(--accent) / 0.2);
   }
 
   /* ── Nav items ──────────────────────────────── */

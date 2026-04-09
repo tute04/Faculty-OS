@@ -28,8 +28,8 @@ export const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#0d0b08] flex items-center justify-center p-6 selection:bg-amber/30">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[420px] w-full bg-[#121009] border border-[#2a2218] rounded-[24px] p-8 md:p-10 shadow-2xl relative">
+    <div className="min-h-screen w-full bg-base flex items-center justify-center p-6 selection:bg-amber/30">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[420px] w-full bg-surface border border-border rounded-[24px] p-8 md:p-10 shadow-2xl relative">
         <header className="mb-8">
            <Link to="/login" className="inline-flex items-center gap-2 text-text-muted hover:text-amber text-xs font-bold uppercase tracking-widest transition-colors mb-6">
              <ArrowLeft size={14} /> Volver al login
@@ -44,7 +44,7 @@ export const ResetPassword = () => {
                <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Email</label>
                   <div className="relative">
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] pl-4 pr-12 text-[14px] text-white focus:border-amber transition-all outline-none" required placeholder="hola@ejemplo.com" />
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] pl-4 pr-12 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required placeholder="hola@ejemplo.com" />
                     <Mail size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted opacity-50" />
                   </div>
                </div>

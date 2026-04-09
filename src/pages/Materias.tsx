@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Plus, Trash2, ExternalLink, Play, CheckCircle2, Circle, Type, Database as DriveIcon, Edit3 } from 'lucide-react';
+import { BookOpen, Plus, Trash2, ExternalLink, Play, CheckCircle2, Circle, Type, Database as DriveIcon, Edit3, Clock } from 'lucide-react';
 import { useMaterias, Materia, Recurso, NotaRapida } from '../hooks/useMaterias';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
@@ -10,11 +10,13 @@ import { useLocation } from 'react-router-dom';
 const DEFAULT_COLORS = ['#f59e0b', '#fb923c', '#4ade80', '#2dd4bf', '#8b5cf6', '#ec4899'];
 
 const CustomCountdownChip = ({ date, done }: { date: string, done: boolean }) => {
-  const d = Math.max(0, daysUntil(date));
+  const d = daysUntil(date);
   if (done) return <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-surface text-text-muted border border-border">Hecho</span>;
-  if (d < 3) return <span className="px-2.5 py-1 rounded-[6px] text-[11px] font-bold bg-red text-white shadow-sm">{d === 0 ? 'Hoy' : `${d}d`}</span>;
-  if (d < 7) return <span className="px-2.5 py-1 rounded-[6px] text-[11px] font-bold bg-amber text-[#1a0f00] shadow-sm">{d}d</span>;
-  return <span className="px-2 pyr-1 rounded-[6px] text-[11px] font-medium text-text-muted flex items-center gap-1.5"><Play size={10} className="rotate-90 fill-current opacity-20" /> {d}d</span>;
+  if (d < 0) return <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-surface text-text-muted border border-border">Pasado</span>;
+  if (d < 7) return <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-bold text-white bg-[#ef4444] tracking-widest">{d}d</span>;
+  if (d < 14) return <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-bold text-[#1a0f00] bg-[#f59e0b] tracking-widest">{d}d</span>;
+  if (d < 31) return <span className="text-[12px] font-medium text-text-muted flex items-center gap-1"><Clock size={12}/>{d}d</span>;
+  return null;
 };
 
 // --- Sub-components ---
@@ -163,6 +165,12 @@ export const Materias: React.FC = () => {
         </h1>
         
         <div className="flex md:flex-col overflow-x-auto md:overflow-y-auto gap-2 pb-2 md:pb-6 no-scrollbar flex-1 items-start md:items-stretch">
+          {materias.length === 0 && (
+            <div className="bg-surface border border-dashed border-amber/50 rounded-[12px] p-5 text-center flex flex-col items-center justify-center gap-2 mx-4 md:mx-0 min-w-[240px]">
+              <p className="text-[13px] text-text-secondary">No hay materias registradas.</p>
+              <p className="text-amber font-medium text-[12px]">Tus materias se crean automáticamente cuando agregás exámenes.</p>
+            </div>
+          )}
           {materias.map(mat => (
             <button 
               key={mat.id}

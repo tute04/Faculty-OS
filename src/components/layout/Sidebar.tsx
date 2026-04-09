@@ -87,13 +87,13 @@ export const Sidebar: React.FC = () => {
       const { error } = await updateProfile(editData);
       if (error) {
         setSaveError('No se pudo guardar. Intentá de nuevo.');
-        console.error('Save profile error:', error);
+        
       } else {
         setShowProfileModal(false);
       }
     } catch (err) {
       setSaveError('Error inesperado al guardar.');
-      console.error('Save profile exception:', err);
+      
     } finally {
       setSavingProfile(false);
     }
@@ -121,7 +121,7 @@ export const Sidebar: React.FC = () => {
   };
 
   const displayName = profile?.first_name
-    ? `${profile.first_name}${profile.last_name ? ' ' + profile.last_name : ''}`
+    ? profile.first_name
     : user?.email?.split('@')[0] ?? 'Estudiante';
 
   return (
@@ -140,9 +140,9 @@ export const Sidebar: React.FC = () => {
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className="w-full">
             {({ isActive }) => (
-              <div className={cn('nav-item', isActive && 'active')}>
+              <div className={cn('flex items-center gap-3 px-6 py-2.5 border-l-[2px] transition-colors', isActive ? 'text-amber bg-amber/10 border-amber' : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-hover')}>
                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-amber' : 'opacity-70'} />
-                <span>{label}</span>
+                <span className="text-[13px] font-medium">{label}</span>
               </div>
             )}
           </NavLink>
@@ -211,7 +211,7 @@ export const Sidebar: React.FC = () => {
           className="flex items-center justify-center w-10 h-10 mx-auto text-text-muted hover:text-amber hover:bg-hover rounded-xl transition-all border border-border/40 shadow-sm group"
           title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
         >
-          {theme === 'dark'
+          {theme === 'light'
             ? <Sun size={18} className="group-hover:rotate-45 transition-transform" />
             : <Moon size={18} className="group-hover:-rotate-12 transition-transform" />}
         </button>

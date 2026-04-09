@@ -15,6 +15,7 @@ import { ResetPassword } from './pages/ResetPassword';
 import { UpdatePassword } from './pages/UpdatePassword';
 import { QuickCaptureModal } from './components/dashboard/QuickCaptureModal';
 import { ImportDataModal } from './components/dashboard/ImportDataModal';
+import { FullScreenLoader } from './components/ui/FullScreenLoader';
 
 import { ThemeProvider } from './lib/theme';
 import { ToastProvider, useToast } from './components/ui/Toast';
@@ -144,14 +145,11 @@ const ProtectedLayout = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   
+  // Block rendering until Supabase has restored the session
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#0d0b08]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber border-t-transparent" />
-      </div>
-    );
+    return <FullScreenLoader />;
   }
-  
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -188,7 +186,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />

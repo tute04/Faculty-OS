@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 
@@ -40,66 +40,17 @@ const normalizeName = (name: string) => {
 };
 
 export function useMaterias() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [materias, setMaterias] = useState<Materia[]>([])
   const [loading, setLoading] = useState(true)
   const syncLock = useRef(false)
+  const retryRef = useRef(false)
 
-  useEffect(() => {
-    if (!user?.id) return; // Bloquear fetch si no hay usuario confirmado
-
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn('useMaterias: Fetch timed out.')
-        setLoading(false)
-      }
-    }, 5000)
-
-    const init = async () => {
-      await cleanupDuplicateMaterias(user.id)
-      await fetchMaterias()
+  const fetchMaterias = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
     }
-    
-    init().finally(() => {
-      clearTimeout(timeout)
-      setLoading(false)
-    })
-  }, [user?.id])
-
-  const cleanupDuplicateMaterias = async (userId: string) => {
-    try {
-      // Fetch all materias for this user
-      const { data } = await supabase
-        .from('materias')
-        .select('id, name')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-
-      if (!data || data.length === 0) return
-
-      const seen = new Map<string, string>() // normalizedName → id to keep
-      const toDelete: string[] = []
-
-      for (const m of data) {
-        const key = normalizeName(m.name)
-        if (seen.has(key)) {
-          toDelete.push(m.id)
-        } else {
-          seen.set(key, m.id)
-        }
-      }
-
-      if (toDelete.length > 0) {
-        console.log(`useMaterias: Cleaning up ${toDelete.length} duplicates...`)
-        await supabase.from('materias').delete().in('id', toDelete)
-      }
-    } catch (err) {
-      console.error('cleanupDuplicateMaterias error:', err)
-    }
-  }
-
-  const fetchMaterias = async () => {
-    if (!user?.id) return
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -114,8 +65,13 @@ export function useMaterias() {
         .order('created_at', { ascending: true })
       
       if (error) {
-        console.error('useMaterias error:', error)
+        setLoading(false);
         return
+      }
+      
+      if ((!data || data.length === 0) && user?.id && !retryRef.current) {
+        retryRef.current = true;
+        setTimeout(() => fetchMaterias(), 1000);
       }
 
       const mapped: Materia[] = (data ?? []).map((m: any) => ({
@@ -145,11 +101,50 @@ export function useMaterias() {
       
       setMaterias(mapped)
     } catch (err) {
-      console.error('useMaterias unexpected error:', err)
+      
     } finally {
       setLoading(false)
     }
+  }, [user?.id, session?.access_token]);
+
+  const cleanupDuplicateMaterias = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('materias')
+        .select('id, name')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+
+      if (!data || data.length === 0) return
+
+      const seen = new Map<string, string>() // normalizedName → id to keep
+      const toDelete: string[] = []
+
+      for (const m of data) {
+        const key = normalizeName(m.name)
+        if (seen.has(key)) {
+          toDelete.push(m.id)
+        } else {
+          seen.set(key, m.id)
+        }
+      }
+
+      if (toDelete.length > 0) {
+        
+        await supabase.from('materias').delete().in('id', toDelete)
+      }
+    } catch (err) {
+      
+    }
   }
+
+  useEffect(() => {
+    if (!user || !user.id) {
+      setLoading(false);
+      return;
+    }
+    cleanupDuplicateMaterias(user.id).then(() => fetchMaterias());
+  }, [fetchMaterias, user?.id, session?.access_token]);
 
   const addMateria = async (name: string, color: string) => {
     const norm = normalizeName(name);
@@ -162,7 +157,7 @@ export function useMaterias() {
       .select()
       .single()
     if (error) {
-      console.error(error)
+      
       return null
     }
     if (data) {
@@ -186,7 +181,7 @@ export function useMaterias() {
       const toInsert = uniqueSubjects.filter(s => !existingNames.has(normalizeName(s)))
 
       if (toInsert.length > 0) {
-        console.log(`useMaterias: Auto-creating ${toInsert.length} missing materias...`)
+        
         await supabase.from('materias').insert(
           toInsert.map((name, i) => ({
             user_id: user.id,
@@ -213,7 +208,7 @@ export function useMaterias() {
       .select()
       .single()
     
-    if (error) return console.error(error)
+    if (error) return 
     if (data) {
       setMaterias(prev => prev.map(m => m.id === id ? { ...m, name: data.name, color: data.color } : m))
     }
@@ -221,7 +216,7 @@ export function useMaterias() {
 
   const deleteMateria = async (id: string) => {
     const { error } = await supabase.from('materias').delete().eq('id', id)
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.filter(m => m.id !== id))
   }
 
@@ -238,7 +233,7 @@ export function useMaterias() {
       })
       .select()
       .single()
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       entregas: [...m.entregas, { id: data.id, title: data.title, dueDate: data.due_date, done: data.done, notes: data.notes }]
@@ -258,7 +253,7 @@ export function useMaterias() {
       .eq('id', entregaId)
       .select()
       .single()
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       entregas: m.entregas.map(e => e.id === entregaId ? { ...e, ...updates } : e)
@@ -267,7 +262,7 @@ export function useMaterias() {
 
   const deleteEntrega = async (materiaId: string, entregaId: string) => {
     const { error } = await supabase.from('entregas').delete().eq('id', entregaId)
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       entregas: m.entregas.filter(e => e.id !== entregaId)
@@ -286,7 +281,7 @@ export function useMaterias() {
       })
       .select()
       .single()
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       recursos: [...m.recursos, { id: data.id, label: data.label, url: data.url, type: data.type as any }]
@@ -295,7 +290,7 @@ export function useMaterias() {
 
   const deleteRecurso = async (materiaId: string, recursoId: string) => {
     const { error } = await supabase.from('recursos').delete().eq('id', recursoId)
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       recursos: m.recursos.filter(r => r.id !== recursoId)
@@ -312,7 +307,7 @@ export function useMaterias() {
       })
       .select()
       .single()
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       notas: [{ id: data.id, content: data.content, createdAt: data.created_at, updatedAt: data.updated_at }, ...m.notas]
@@ -326,7 +321,7 @@ export function useMaterias() {
       .eq('id', notaId)
       .select()
       .single()
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       notas: m.notas.map(n => n.id === notaId ? { ...n, content: data.content, updatedAt: data.updated_at } : n)
@@ -335,7 +330,7 @@ export function useMaterias() {
 
   const deleteNota = async (materiaId: string, notaId: string) => {
     const { error } = await supabase.from('notas').delete().eq('id', notaId)
-    if (error) return console.error(error)
+    if (error) return 
     setMaterias(prev => prev.map(m => m.id === materiaId ? {
       ...m,
       notas: m.notas.filter(n => n.id !== notaId)

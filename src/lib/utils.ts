@@ -76,7 +76,7 @@ export function getCuatrimestre(): string {
   return 'Receso / Cursos de Verano';
 }
 
-export function getUserFirstName(profile: any): string {
-  const name = profile?.first_name || 'Estudiante';
+export function getUserFirstName(profile: any, user?: any): string {
+  const name = profile?.first_name || user?.user_metadata?.first_name || user?.user_metadata?.full_name?.split(' ')[0] || 'Estudiante';
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }

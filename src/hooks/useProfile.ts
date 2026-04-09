@@ -7,7 +7,7 @@ import { useAuth } from '../lib/auth';
  * Persiste si el usuario ya inyectó los datos iniciales (seed) en Supabase.
  */
 export function useProfile() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,20 +28,20 @@ export function useProfile() {
              await supabase.from('profiles').insert({ id: user!.id });
              setHasCompletedOnboarding(false);
           } else {
-             console.error('Error fetching profile:', error);
+             
           }
         } else if (data) {
           setHasCompletedOnboarding(data.has_completed_onboarding);
         }
       } catch (err) {
-        console.error('Unexpected error in useProfile:', err);
+        
       } finally {
         setLoading(false);
       }
     }
 
     fetchProfile();
-  }, [user]);
+  }, [user, session?.access_token]);
 
   const completeOnboarding = async () => {
     if (!user) return;
@@ -53,7 +53,7 @@ export function useProfile() {
     if (!error) {
       setHasCompletedOnboarding(true);
     } else {
-      console.error('Error updating onboarding status:', error);
+      
     }
   };
 

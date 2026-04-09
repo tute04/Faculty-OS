@@ -34,30 +34,53 @@ export const Timeline = () => {
       .filter(e => e.percent >= 0 && e.percent <= 100)
       .sort((a, b) => a.d.getTime() - b.d.getTime());
 
-    // Stagger pills vertically
+    // Stagger pills vertically based on collision (40px overlap detection roughly translates to ~5% depending on screen, let's use a dynamic logic)
     const rows: { endPercent: number }[] = [];
+    const minGap = 8; // approx percent gap needed to avoid overlap
     const layoutExams = semesterExams.map(ex => {
-      let rowIndex = rows.findIndex(r => r.endPercent < ex.percent - 5); // 5% minimum gap
-      if (rowIndex === -1) {
-        rowIndex = rows.length;
-        rows.push({ endPercent: ex.percent });
-      } else {
-        rows[rowIndex].endPercent = ex.percent;
+      let rowIndex = -1;
+      for (let i = 0; i < 4; i++) { // try up to 4 rows
+        if (!rows[i] || rows[i].endPercent < ex.percent - minGap) {
+          rowIndex = i;
+          rows[i] = { endPercent: ex.percent };
+          break;
+        }
       }
-      return { ...ex, rowIndex: Math.min(rowIndex, 2) }; // Cap at 3 rows (0, 1, 2)
+      if (rowIndex === -1) {
+        rowIndex = 3; // cap at bottom row
+        rows[3].endPercent = ex.percent;
+      }
+      return { ...ex, rowIndex }; 
     });
 
-    // Weeks
+    // Weeks for the bottom bar
     const totalWeeks = Math.ceil(totalDays / 7);
     const weeks = Array.from({ length: totalWeeks }).map((_, i) => {
       const weekPercent = ((i * 7) / totalDays) * 100;
-      // count exams in this week
       const examsInWeek = layoutExams.filter(e => e.percent >= weekPercent && e.percent < weekPercent + (7/totalDays)*100).length;
       return { number: i + 1, percent: weekPercent, examsCount: examsInWeek };
     });
 
     return { isC1, startDate, endDate, totalDays, todayPercent, exams: layoutExams, weeks };
   }, [exams]);
+
+  // Generate density heatmap logic using the specific dates approach requested:
+  const heatmapWeeks = Array.from({ length: 22 }, (_, i) => i + 1);
+  const examCountPerWeek = heatmapWeeks.map(weekNum => {
+    const now = new Date();
+    const isC1 = now.getMonth() < 7;
+    const year = now.getFullYear();
+    const semesterStart = new Date(year, isC1 ? 2 : 7, 1);
+    const weekStart = new Date(semesterStart);
+    weekStart.setDate(semesterStart.getDate() + (weekNum - 1) * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    
+    return exams.filter(e => {
+      const d = new Date(e.date);
+      return d >= weekStart && d <= weekEnd && e.status === 'pendiente';
+    }).length;
+  });
 
   return (
     <div className="space-y-6 pb-20">
@@ -77,7 +100,7 @@ export const Timeline = () => {
         <div className="flex flex-col gap-12 mt-8">
           
           {/* Timeline Bar Area */}
-          <div className="relative w-full pt-16 pb-12 bg-elevated border border-border rounded-xl px-4 sm:px-8">
+          <div className="relative w-full pt-[120px] pb-12 bg-elevated border border-border rounded-xl px-4 sm:px-8">
             
             {/* The main bar */}
             <div className="relative h-1.5 w-full bg-border rounded-full">
@@ -85,7 +108,7 @@ export const Timeline = () => {
               {/* Today Marker */}
               {timelineData.todayPercent > 0 && timelineData.todayPercent < 100 && (
                 <div 
-                  className="absolute top-0 bottom-0 w-px bg-amber border-l border-dashed border-amber/50 z-10 translate-y-[-100%] h-32"
+                  className="absolute top-0 bottom-0 w-px bg-amber border-l border-dashed border-amber/50 z-10 translate-y-[-100%] h-40"
                   style={{ left: `${timelineData.todayPercent}%` }}
                 >
                   <span className="absolute -top-6 -left-3 text-[10px] font-bold text-amber bg-amber/10 px-1.5 py-0.5 rounded">Hoy</span>
@@ -103,18 +126,17 @@ export const Timeline = () => {
               {timelineData.exams.map((ex: { id: string, date: string, type: string, subject: string, percent: number, rowIndex: number }) => {
                 const d = daysUntil(ex.date);
                 const colorClass = d < 7 ? 'bg-red text-[#17130b]' : d < 14 ? 'bg-amber text-[#17130b]' : d < 30 ? 'bg-green text-[#17130b]' : 'bg-surface text-text-primary border border-border';
-                const abbrev = ex.subject.split(' ').slice(0, 2).map((s: string) => s[0]).join('').toUpperCase() || ex.subject.substring(0,2).toUpperCase();
-
+                
                 return (
                   <div 
                     key={ex.id} 
                     className={cn(
-                      "absolute flex items-center justify-center -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm whitespace-nowrap cursor-pointer z-20 group hover:z-30 transition-transform hover:scale-105",
-                      colorClass
+                      "absolute flex items-center justify-center -translate-x-1/2 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm whitespace-nowrap cursor-pointer z-20 group hover:z-30 transition-transform hover:scale-105 overflow-hidden text-ellipsis max-w-[120px] min-w-[80px]",
+                      ex.type === 'TP' ? "border border-dashed bg-surface text-text-primary border-text-muted/50" : colorClass
                     )}
-                    style={{ left: `${ex.percent}%`, top: `${(ex.rowIndex * -28) - 14}px` }}
+                    style={{ left: `${ex.percent}%`, top: `${(ex.rowIndex * -28) - 24}px` }}
                   >
-                    <span>{abbrev} · {ex.type}</span>
+                    <span className="truncate">{ex.subject.substring(0, 16)}{ex.subject.length > 16 ? '...' : ''}</span>
                     
                     {/* Tooltip */}
                     <div className="absolute opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto bottom-full mb-1 left-1/2 -translate-x-1/2 bg-elevated text-text-primary border border-border px-3 py-2 rounded-lg shadow-xl min-w-[150px] transition-opacity">
@@ -133,22 +155,22 @@ export const Timeline = () => {
           {/* Density Heatmap */}
           <div className="bg-elevated border border-border p-5 rounded-xl">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4">Densidad de Exámenes</h3>
-            <div className="flex items-end h-[60px] gap-1 px-2">
-              {timelineData.weeks.map((w: { number: number, examsCount: number }) => {
-                const height = w.examsCount === 0 ? '10%' : w.examsCount === 1 ? '50%' : '100%';
-                const color = w.examsCount === 0 ? 'var(--border)' : w.examsCount === 1 ? 'var(--amber)' : 'var(--red)';
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 80, padding: '0 16px' }}>
+              {heatmapWeeks.map((week, i) => {
+                const count = examCountPerWeek[i];
+                const height = count === 0 ? 8 : count === 1 ? 28 : count === 2 ? 44 : 56;
+                const color = count === 0 ? 'var(--bg-hover)' 
+                            : count >= 3 ? 'var(--red)' 
+                            : 'var(--amber)';
                 return (
-                  <div key={w.number} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                    <div 
-                      className="w-full max-w-[16px] rounded-t-sm transition-all"
-                      style={{ height, backgroundColor: color, opacity: w.examsCount === 0 ? 0.3 : 0.9 }}
-                    />
-                    {/* Tooltip */}
-                    {w.examsCount > 0 && (
-                      <div className="absolute opacity-0 group-hover:opacity-100 bottom-[calc(100%+4px)] bg-surface border border-border text-[10px] font-medium px-2 py-1 rounded shadow-md whitespace-nowrap z-10 pointer-events-none">
-                        Semana {w.number}: {w.examsCount} {w.examsCount === 1 ? 'examen' : 'exámenes'}
-                      </div>
+                  <div key={week} style={{ flex: 1, display: 'flex', flexDirection: 'column', 
+                    alignItems: 'center', gap: 4 }}>
+                    {count > 0 && (
+                      <span style={{ fontSize: 10, color: color, fontWeight: 'bold' }}>{count}</span>
                     )}
+                    <div style={{ width: '100%', height, background: color, 
+                      borderRadius: 3, opacity: count === 0 ? 0.4 : 1 }} />
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>S{week}</span>
                   </div>
                 );
               })}

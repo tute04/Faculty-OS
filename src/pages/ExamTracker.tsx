@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, LayoutList, ChevronDown, ChevronRight, Share2, Info } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Plus, Pencil, Trash2, LayoutList, ChevronDown, ChevronRight, Share2, Info, Clock } from 'lucide-react';
 import { useExams } from '../hooks/useExams';
 import { useWeekBlocks } from '../hooks/useWeekBlocks';
 import type { Exam, ExamStatus, ExamType } from '../types';
@@ -13,10 +13,14 @@ import { PriorityBadge } from '../components/ui/PriorityBadge';
 import { useToast } from '../components/ui/Toast';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
+import { ExamTypeBadge, typeStyles } from '../components/ui/ExamTypeBadge';
 
 
 const TYPES: ExamType[] = ['parcial', 'final', 'TP', 'recuperatorio'];
 const STATUSES: ExamStatus[] = ['pendiente', 'aprobado', 'desaprobado', 'libre'];
+
+// ─── Type visual config ──────────────────────────────────────────────────────────
+const TYPE_ORDER: Record<string, number> = { final: 0, parcial: 1, TP: 2, recuperatorio: 3 };
 
 // ─── Sub-components ─────────────────────────────────────────────────────────────
 const SegmentedControl = ({ options, value, onChange }: { options: string[], value: string, onChange: (v: string) => void }) => (
@@ -37,11 +41,13 @@ const SegmentedControl = ({ options, value, onChange }: { options: string[], val
 const CustomCountdownChip = ({ date, status }: { date: string, status: string }) => {
   const d = daysUntil(date);
   if (status !== 'pendiente' || d < 0) return <span className="px-2 py-0.5 rounded-[6px] text-xs font-medium bg-surface text-text-muted border border-border">{d < 0 ? 'Pasado' : `${d}d`}</span>;
-  if (d < 7) return <span className="px-2 py-0.5 rounded-[6px] text-xs font-medium bg-red/10 text-red border border-red/20">{d}d</span>;
-  if (d < 14) return <span className="px-2 py-0.5 rounded-[6px] text-xs font-medium bg-amber/10 text-amber border border-amber/20">{d}d</span>;
-  if (d < 30) return <span className="px-2 py-0.5 rounded-[6px] text-xs font-medium bg-green/10 text-green border border-green/20">{d}d</span>;
-  return <span className="px-2 py-0.5 rounded-[6px] text-xs font-medium bg-surface text-text-muted border border-border">{d}d</span>;
+  if (d < 7) return <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-bold text-white bg-[#ef4444] tracking-widest">{d}d</span>;
+  if (d < 14) return <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-bold text-[#1a0f00] bg-[#f59e0b] tracking-widest">{d}d</span>;
+  if (d < 31) return <span className="text-[12px] font-medium text-text-muted flex items-center gap-1"><Clock size={12}/>{d}d</span>;
+  return null;
 };
+
+const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 // ─── Modal Form ─────────────────────────────────────────────────────────────────
 interface FormProps { initial?: Partial<Exam>; onSave: (d: Omit<Exam, 'id'>) => void; onCancel: () => void; subjects: string[] }
@@ -56,6 +62,18 @@ const ExamForm: React.FC<FormProps> = ({ initial, onSave, onCancel, subjects }) 
   });
   const [isNewSubject, setIsNewSubject] = useState(f.subject === '' || !subjects.includes(f.subject));
   const [newSub, setNewSub] = useState(isNewSubject ? f.subject : '');
+
+  const dObj = new Date(f.date + 'T12:00:00');
+  const [dayX, setDayX] = useState(dObj.getDate());
+  const [monthX, setMonthX] = useState(dObj.getMonth() + 1);
+  const [yearX, setYearX] = useState(dObj.getFullYear());
+
+  React.useEffect(() => {
+    const yy = yearX;
+    const mm = monthX.toString().padStart(2, '0');
+    const dd = dayX.toString().padStart(2, '0');
+    setF(prev => ({ ...prev, date: `${yy}-${mm}-${dd}` }));
+  }, [dayX, monthX, yearX]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,31 +103,46 @@ const ExamForm: React.FC<FormProps> = ({ initial, onSave, onCancel, subjects }) 
         <label className="label mb-1.5 block">Tipo</label>
         <SegmentedControl options={TYPES} value={f.type} onChange={v => setF({...f, type: v as ExamType})} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label mb-1.5 block">Estado</label>
-          <select className="input" value={f.status} onChange={e => {
-            const st = e.target.value as ExamStatus;
-            setF({...f, status: st, grade: (st==='aprobado'||st==='desaprobado') ? f.grade : undefined});
-          }}>
-            {STATUSES.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
+      <div>
+        <label className="label mb-1.5 block">Fecha</label>
+        <div className="flex gap-2">
+          <select className="input flex-1 !px-2" value={dayX} onChange={e => setDayX(Number(e.target.value))}>
+            {Array.from({length: 31}).map((_, i) => <option key={i} value={i+1}>{i+1}</option>)}
+          </select>
+          <select className="input flex-[2] !px-2" value={monthX} onChange={e => setMonthX(Number(e.target.value))}>
+            {months.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+          </select>
+          <select className="input flex-1 !px-2" value={yearX} onChange={e => setYearX(Number(e.target.value))}>
+            {[2025, 2026, 2027, 2028].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        <div>
-          <label className="label mb-1.5 block">Fecha</label>
-          <input type="date" className="input" value={f.date} onChange={e => setF({...f, date: e.target.value})} required />
+      </div>
+      <details className="group mt-2">
+        <summary className="text-[12px] font-bold text-amber hover:underline cursor-pointer list-none flex items-center gap-1 select-none">
+          Opciones avanzadas <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
+        </summary>
+        <div className="flex flex-col gap-4 mt-4 mb-2">
+          <div>
+            <label className="label mb-1.5 block">Estado</label>
+            <select className="input" value={f.status} onChange={e => {
+              const st = e.target.value as ExamStatus;
+              setF({...f, status: st, grade: (st==='aprobado'||st==='desaprobado') ? f.grade : undefined});
+            }}>
+              {STATUSES.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
+            </select>
+          </div>
+          {(f.status === 'aprobado' || f.status === 'desaprobado') && (
+            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}}>
+              <label className="label mb-1.5 block">Nota</label>
+              <input type="number" min="1" max="10" step="0.25" className="input" placeholder="Ej: 8" value={f.grade ?? ''} onChange={e => setF({...f, grade: e.target.value ? Number(e.target.value) : undefined})} required />
+            </motion.div>
+          )}
+          <div>
+            <label className="label mb-1.5 block flex justify-between">Notas (opcional) <span className="text-[10px] text-text-faint">{f.notes?.length ?? 0}/200</span></label>
+            <textarea maxLength={200} rows={2} className="input resize-none" value={f.notes ?? ''} onChange={e => setF({...f, notes: e.target.value})} placeholder="Temario..." />
+          </div>
         </div>
-      </div>
-      {(f.status === 'aprobado' || f.status === 'desaprobado') && (
-        <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}}>
-          <label className="label mb-1.5 block">Nota</label>
-          <input type="number" min="1" max="10" step="0.25" className="input" placeholder="Ej: 8" value={f.grade ?? ''} onChange={e => setF({...f, grade: e.target.value ? Number(e.target.value) : undefined})} required />
-        </motion.div>
-      )}
-      <div>
-        <label className="label mb-1.5 block flex justify-between">Notas (opcional) <span className="text-[10px] text-text-faint">{f.notes?.length ?? 0}/200</span></label>
-        <textarea maxLength={200} rows={2} className="input resize-none" value={f.notes ?? ''} onChange={e => setF({...f, notes: e.target.value})} placeholder="Temario..." />
-      </div>
+      </details>
       <div className="flex justify-end gap-2 mt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
         <Button type="submit" variant="primary">Guardar</Button>
@@ -125,6 +158,15 @@ export const ExamTracker: React.FC = () => {
   const { showToast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Exam | null>(null);
+  
+  const location = useLocation();
+  React.useEffect(() => {
+    if (location.search.includes('add=true')) {
+      setEditing(null);
+      setModalOpen(true);
+      window.history.replaceState({}, document.title, location.pathname);
+    }
+  }, [location]);
 
   // Filters state
   const [tab, setTab] = useState<'Todos' | 'Pendientes' | 'Aprobados' | 'Desaprobados' | 'Libres' | 'Regularidad'>('Todos');
@@ -148,6 +190,7 @@ export const ExamTracker: React.FC = () => {
 
   // filtering
   const filtered = exams.filter(e => {
+    if (e.type === 'TP') return false;
     if (tab !== 'Todos' && e.status !== tab.toLowerCase().replace(/s$/, '')) return false;
     if (subjectFilter !== 'Todas' && e.subject !== subjectFilter) return false;
     if (typeFilter !== 'Todos' && e.type !== typeFilter.toLowerCase()) return false;
@@ -162,6 +205,7 @@ export const ExamTracker: React.FC = () => {
   }, {} as Record<string, Exam[]>);
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [expandedLists, setExpandedLists] = useState<Record<string, boolean>>({});
 
   const toggleSub = (s: string) => setCollapsed(prev => ({ ...prev, [s]: !prev[s] }));
 
@@ -193,6 +237,11 @@ export const ExamTracker: React.FC = () => {
           <Plus size={16} /> Agregar examen
         </Button>
       </header>
+
+      <div className="bg-elevated border border-dashed border-border p-3 rounded-xl mb-6 flex items-center gap-3 text-text-muted text-sm">
+        <Info size={16} className="text-amber" />
+        <p>Los TPs aparecen en <Link to="/materias" className="text-amber hover:underline font-medium">Materias → Entregas</Link></p>
+      </div>
 
       {/* Filter bar */}
       <div className="flex flex-col gap-3 mb-6 shrink-0">
@@ -284,63 +333,98 @@ export const ExamTracker: React.FC = () => {
                   </div>
                   <AnimatePresence initial={false}>
                     {!isCol && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-col gap-2 overflow-hidden">
-                        {list.sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime()).map((ex) => {
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-col gap-[6px] overflow-hidden">
+                        {list
+                          .slice()
+                          .sort((a, b) => {
+                            const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+                            const within3Days = Math.abs(dateDiff) <= 3 * 86400000;
+                            if (within3Days) {
+                              return (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9);
+                            }
+                            return dateDiff;
+                          })
+                          .slice(0, (() => {
+                            if (expandedLists[sub]) return undefined;
+                            const pending = list.filter(e => e.status === 'pendiente');
+                            const allUrgent = pending.length > 0 && pending.every(e => daysUntil(e.date) <= 14);
+                            if (allUrgent) return undefined;
+                            return 3;
+                          })())
+                          .map((ex) => {
+
                           const days = daysUntil(ex.date);
                           const isUrgent = ex.status === 'pendiente' && days <= 7 && days >= 0;
-                          const isSoon = ex.status === 'pendiente' && days > 7 && days <= 14;
-                          
                           return (
                             <div 
                               key={ex.id} 
                               className={cn(
-                                "flex flex-col md:flex-row items-center justify-between bg-surface border border-border rounded-[12px] p-4 group hover:border-amber/20 transition-all gap-4 relative overflow-hidden",
-                                isUrgent && "border-l-[4px] border-l-red",
-                                isSoon && "border-l-[4px] border-l-amber",
-                                ex.status !== 'pendiente' && "opacity-60"
+                                "flex items-center justify-between p-3 rounded-card group hover:bg-hover transition-colors gap-4 min-h-[56px] max-h-[56px] border border-border/40",
+                                ex.status !== 'pendiente' && "opacity-70"
                               )}
                             >
-                              <div className="flex flex-col gap-1 min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-[15px] font-bold text-text-primary tracking-tight">
-                                    {ex.type} {ex.status === 'aprobado' && '✅'}
-                                  </span>
-                                  <span className="text-[11px] font-bold text-text-faint uppercase tracking-widest">{formatDateES(ex.date)}</span>
+                              {/* Left */}
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0", 
+                                  ex.type === 'parcial' ? "bg-amber/10 text-amber" : 
+                                  ex.type === 'final' ? "bg-red/10 text-red" : 
+                                  "bg-surface border border-border text-text-muted"
+                                )}>
+                                  {ex.type}
                                 </div>
-                                {ex.notes && <p className="text-[12px] text-text-muted truncate max-w-[400px]">{ex.notes}</p>}
-                                {ex.status === 'pendiente' && days >= 0 && (
-                                  <p className={cn("text-[11px] font-bold uppercase", isUrgent ? "text-red" : isSoon ? "text-amber" : "text-text-faint")}>
-                                    {days === 0 ? 'Es hoy' : days === 1 ? 'Mañana' : `Faltan ${days} días`}
-                                  </p>
-                                )}
+                                <div className="flex flex-col min-w-0 mt-0.5">
+                                  <span className="text-[14px] font-medium text-text-primary truncate flex items-center gap-2 leading-tight">
+                                    {ex.subject}
+                                    {ex.status === 'aprobado' && <span className="text-[12px]">✅</span>}
+                                  </span>
+                                  {ex.notes && <span className="text-[12px] text-text-muted truncate leading-tight">{ex.notes}</span>}
+                                </div>
                               </div>
 
-                              <div className="flex items-center gap-6 shrink-0">
-                                <div className="flex flex-col items-end gap-1">
-                                  {ex.grade !== undefined && (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[11px] font-bold text-text-faint uppercase">Nota</span>
-                                      <span className={cn("text-xl font-black", ex.grade >= 4 ? "text-green" : "text-red")}>{ex.grade}</span>
-                                    </div>
+                              {/* Right */}
+                              <div className="flex items-center gap-4 shrink-0">
+                                <span className="text-[12px] text-text-muted hidden sm:inline-block">{formatDateES(ex.date)}</span>
+                                {ex.status === 'pendiente' && days >= 0 && (
+                                  <CustomCountdownChip date={ex.date} status={ex.status} />
+                                )}
+                                
+                                <div className="flex flex-row items-center gap-2">
+                                  {typeof ex.grade === 'number' && (
+                                    <span className={cn("text-[13px] font-bold px-1.5", ex.grade >= 4 ? "text-green" : "text-red")}>
+                                      {ex.grade}
+                                    </span>
                                   )}
                                   <span className={cn(
-                                    "text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded border",
-                                    ex.status === 'pendiente' ? "bg-amber/10 border-amber/20 text-amber" :
-                                    ex.status === 'aprobado' ? "bg-green/10 border-green/20 text-green" :
-                                    ex.status === 'desaprobado' ? "bg-red/10 border-red/20 text-red" : "bg-elevated border-border text-text-muted"
+                                    "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border",
+                                    ex.status === 'pendiente' ? "border-border text-text-primary" :
+                                    ex.status === 'aprobado' ? "border-green/20 text-green" :
+                                    ex.status === 'desaprobado' ? "border-red/20 text-red" : "border-border text-text-muted"
                                   )}>
                                     {ex.status}
                                   </span>
                                 </div>
-                                <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => handleShare(ex)} className="p-2 text-text-muted hover:text-amber bg-elevated rounded-lg border border-border shadow-sm transition-colors"><Share2 size={14}/></button>
-                                  <button onClick={() => { setEditing(ex); setModalOpen(true); }} className="p-2 text-text-muted hover:text-text-primary bg-elevated rounded-lg border border-border shadow-sm transition-colors"><Pencil size={14}/></button>
-                                  <button onClick={() => deleteExam(ex.id)} className="p-2 text-text-muted hover:text-red bg-elevated rounded-lg border border-border shadow-sm transition-colors"><Trash2 size={14}/></button>
+
+                                <div className="flex gap-0.5 md:opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                                  <button onClick={() => { setEditing(ex); setModalOpen(true); }} className="p-1.5 text-text-muted hover:text-text-primary rounded-md hover:bg-elevated transition-colors"><Pencil size={14}/></button>
+                                  <button onClick={() => { deleteExam(ex.id); showToast('Examen eliminado'); }} className="p-1.5 text-text-muted hover:text-red rounded-md hover:bg-elevated transition-colors"><Trash2 size={14}/></button>
                                 </div>
                               </div>
                             </div>
                           );
                         })}
+                        {list.length > 3 && !expandedLists[sub] && (() => {
+                          const pending = list.filter(e => e.status === 'pendiente');
+                          const allUrgent = pending.length > 0 && pending.every(e => daysUntil(e.date) <= 14);
+                          if (allUrgent) return null;
+                          return (
+                            <button 
+                              onClick={() => setExpandedLists(prev => ({ ...prev, [sub]: true }))}
+                              className="w-fit text-[11px] font-bold text-amber hover:underline text-left mt-1 ml-1"
+                            >
+                              Ver {list.length - 3} más →
+                            </button>
+                          );
+                        })()}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -353,7 +437,7 @@ export const ExamTracker: React.FC = () => {
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Editar Examen' : 'Nuevo Examen'}>
-        <ExamForm initial={editing ?? undefined} onSave={d => { if (editing) { updateExam(editing.id, d); } else { addExam(d); } setModalOpen(false); }} onCancel={() => setModalOpen(false)} subjects={subjects} />
+        <ExamForm initial={editing ?? undefined} onSave={d => { if (editing) { updateExam(editing.id, d); showToast('Examen guardado correctamente'); } else { addExam(d); showToast('Examen agregado'); } setModalOpen(false); }} onCancel={() => setModalOpen(false)} subjects={subjects} />
       </Modal>
     </div>
   );

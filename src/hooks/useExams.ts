@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Exam, SubjectStatus } from '../types'
@@ -36,51 +36,83 @@ const calculateSubjectStatuses = (exams: Exam[]): SubjectStatus[] => {
 };
 
 export function useExams() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [exams, setExams] = useState<Exam[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<ExamFilters>({ subject: '', status: '', type: '' })
+  const retryRef = useRef(false);
 
-  useEffect(() => {
-    if (!user?.id) return; // Bloquear fetch si no hay usuario confirmado
-
-    let cancelled = false
-    const timeout = setTimeout(() => {
-      if (!cancelled) {
-        console.warn('useExams: Fetch timed out.')
-        setLoading(false)
-      }
-    }, 5000)
-
-    fetchExams().finally(() => {
-      cancelled = true
-      clearTimeout(timeout)
-    })
-
-    return () => { cancelled = true; clearTimeout(timeout) }
-  }, [user?.id])
-
-  const fetchExams = async () => {
-    if (!user?.id) return
+  const fetchExams = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true)
     try {
+      
       const { data, error } = await supabase
         .from('exams')
         .select('*')
         .eq('user_id', user.id)
         .order('date', { ascending: true })
       
+      
+      
       if (error) {
-        console.error('useExams error:', error)
+        setLoading(false);
         return
+      }
+      if ((!data || data.length === 0) && user?.id && !retryRef.current) {
+        retryRef.current = true;
+        setTimeout(() => fetchExams(), 1000);
       }
       setExams(data ?? [])
     } catch (err) {
-      console.error('useExams unexpected error:', err)
+      
     } finally {
       setLoading(false)
     }
+  }, [user?.id, session?.access_token]);
+
+  const cleanupDuplicateExams = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('exams')
+        .select('id, subject, type, date')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+
+      if (!data || data.length === 0) return
+
+      const seen = new Set<string>() 
+      const toDelete: string[] = []
+
+      for (const ex of data) {
+        // Examen duplicado: Misma materia, mismo tipo y misma fecha límite
+        const key = `${normalizeName(ex.subject || '')}-${ex.type}-${ex.date}`
+        if (seen.has(key)) {
+          toDelete.push(ex.id)
+        } else {
+          seen.add(key)
+        }
+      }
+
+      if (toDelete.length > 0) {
+        
+        await supabase.from('exams').delete().in('id', toDelete)
+      }
+    } catch (err) {
+      
+    }
   }
+
+  useEffect(() => {
+    if (!user || !user.id) {
+       setLoading(false);
+       return;
+    }
+    cleanupDuplicateExams(user.id).then(() => fetchExams());
+  }, [fetchExams, user?.id, session?.access_token]);
 
   const addExam = async (exam: Omit<Exam, 'id'>) => {
     // Asegurar que la materia exista antes de crear el examen
@@ -106,7 +138,7 @@ export function useExams() {
         });
 
         if (matError) {
-          console.error("Error auto-creando materia (¿RLS?):", matError);
+          
         }
       }
     }
@@ -118,7 +150,7 @@ export function useExams() {
       .single()
 
     if (error) {
-      console.error(error)
+      
       return
     }
 
@@ -141,7 +173,7 @@ export function useExams() {
       .select()
       .single()
     if (error) {
-      console.error(error)
+      
       return
     }
     if (data) setExams(prev => prev.map(e => e.id === id ? data : e))
@@ -150,7 +182,7 @@ export function useExams() {
   const deleteExam = async (id: string) => {
     const { error } = await supabase.from('exams').delete().eq('id', id)
     if (error) {
-      console.error(error)
+      
       return
     }
     setExams(prev => prev.filter(e => e.id !== id))

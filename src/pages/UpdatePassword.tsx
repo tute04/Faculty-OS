@@ -38,8 +38,8 @@ export const UpdatePassword = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#0d0b08] flex items-center justify-center p-6 selection:bg-amber/30">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[420px] w-full bg-[#121009] border border-[#2a2218] rounded-[24px] p-10 shadow-2xl relative">
+    <div className="min-h-screen w-full bg-base flex items-center justify-center p-6 selection:bg-amber/30">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-[420px] w-full bg-surface border border-border rounded-[24px] p-10 shadow-2xl relative">
         <header className="mb-10 text-center">
            <h1 className="text-2xl font-bold text-[#f0e8d8] tracking-tight">Nueva contraseña</h1>
            <p className="text-text-muted mt-2 text-sm leading-relaxed">Elegí una clave segura para entrar a Faculty OS.</p>
@@ -58,13 +58,13 @@ export const UpdatePassword = () => {
              <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Nueva contraseña</label>
                 <div className="relative">
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required minLength={6} placeholder="••••••••" />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required minLength={6} placeholder="••••••••" />
                 </div>
              </div>
              <div className="space-y-1.5 mb-2">
                 <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Confirmar contraseña</label>
                 <div className="relative">
-                  <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required minLength={6} placeholder="••••••••" />
+                  <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required minLength={6} placeholder="••••••••" />
                 </div>
              </div>
 

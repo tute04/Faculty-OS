@@ -1,31 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Habit } from '../types'
 
 export function useHabits() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
+  const retryRef = useRef(false);
 
-  useEffect(() => {
-    if (!user?.id) return; // Bloquear fetch si no hay usuario confirmado
-
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn('useHabits: Fetch timed out.')
-        setLoading(false)
-      }
-    }, 5000)
-
-    fetchHabits().finally(() => {
-      clearTimeout(timeout)
-      setLoading(false)
-    })
-  }, [user?.id])
-
-  const fetchHabits = async () => {
-    if (!user?.id) return
+  const fetchHabits = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -35,10 +23,16 @@ export function useHabits() {
         .order('created_at', { ascending: true })
       
       if (error) {
-        console.error('useHabits error:', error)
+        
+        setLoading(false);
         return
       }
       
+      if ((!data || data.length === 0) && user?.id && !retryRef.current) {
+        retryRef.current = true;
+        setTimeout(() => fetchHabits(), 1000);
+      }
+
       const mapped = (data ?? []).map((h: any) => ({
         id: h.id,
         label: h.label,
@@ -48,11 +42,19 @@ export function useHabits() {
       }))
       setHabits(mapped)
     } catch (err) {
-      console.error('useHabits unexpected error:', err)
+      
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id, session?.access_token]);
+
+  useEffect(() => {
+    if (!user || !user.id) {
+       setLoading(false);
+       return;
+    }
+    fetchHabits();
+  }, [fetchHabits, user?.id, session?.access_token]);
 
   const addHabit = async (habit: Omit<Habit, 'id'>) => {
     const { data, error } = await supabase
@@ -68,7 +70,7 @@ export function useHabits() {
       .single()
     
     if (error) {
-      console.error(error)
+      
       return
     }
     if (data) {
@@ -96,7 +98,7 @@ export function useHabits() {
       .select()
       .single()
     if (error) {
-      console.error(error)
+      
       return
     }
     if (data) {
@@ -113,7 +115,7 @@ export function useHabits() {
   const deleteHabit = async (id: string) => {
     const { error } = await supabase.from('habits').delete().eq('id', id)
     if (error) {
-      console.error(error)
+      
       return
     }
     setHabits(prev => prev.filter(h => h.id !== id))
@@ -134,7 +136,7 @@ export function useHabits() {
       .eq('id', habitId)
     
     if (error) {
-      console.error(error)
+      
       // revert if error
       setHabits(prev => prev.map(h => h.id === habitId ? { ...h, completedDays: habit.completedDays } : h))
     }

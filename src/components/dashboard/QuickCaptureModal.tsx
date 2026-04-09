@@ -54,7 +54,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({ open, onCl
       setDate('');
       setType('Examen');
     } catch (error) {
-      console.error(error);
+      
     } finally {
       setLoading(false);
     }

@@ -139,16 +139,16 @@ export const OnboardingFlow: React.FC<{ children: React.ReactNode }> = ({ childr
 
       runningRef.current = true;
       try {
-        console.log("Onboarding: Inyectando datos de prueba...");
+        
         for (const e of SEED_EXAMS) await addExam(e);
         for (const b of SEED_BLOCKS) await addBlock(b as any);
         for (const h of SEED_HABITS) await addHabit(h);
 
         await completeOnboarding();
         setShowWelcome(true);
-        console.log("Onboarding: Finalizado con éxito.");
+        
       } catch (error) {
-        console.error("Onboarding Flow Error:", error);
+        
       } finally {
         runningRef.current = false;
       }

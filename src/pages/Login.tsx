@@ -105,8 +105,8 @@ export const Login = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen w-full bg-[#0d0b08] flex items-center justify-center p-6 selection:bg-amber/30">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full bg-[#121009] border border-[#2a2218] rounded-[24px] p-10 text-center shadow-2xl">
+      <div className="min-h-screen w-full bg-base flex items-center justify-center p-6 selection:bg-amber/30">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full bg-surface border border-border rounded-[24px] p-10 text-center shadow-2xl">
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.2 }} className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 size={40} className="text-green-500" />
           </motion.div>
@@ -121,13 +121,12 @@ export const Login = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#0d0b08] flex items-center justify-center p-6 selection:bg-amber/30 overflow-y-auto">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="max-w-[420px] w-full bg-[#121009] border border-[#2a2218] rounded-[16px] p-8 md:p-10 shadow-2xl relative overflow-hidden">
+    <div className="min-h-screen w-full bg-base flex items-center justify-center p-6 selection:bg-amber/30 overflow-y-auto">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="max-w-[420px] w-full bg-surface border border-border rounded-[16px] p-8 md:p-10 shadow-2xl relative overflow-hidden">
         
-        {/* Logo Section */}
-        <header className="flex flex-col items-center mb-10 text-center">
-          <div className="relative mb-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#f59e0b] shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+        <header className="flex flex-col items-center mb-8 relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-amber shadow-sm">
               <span className="text-white text-[20px] font-black leading-none mb-0.5">F</span>
             </div>
             <div className="absolute -top-1 -right-1 bg-amber text-black p-0.5 rounded-full shadow-lg">
@@ -152,7 +151,7 @@ export const Login = () => {
             <motion.form key="login-form" variants={tabVariants} initial="initial" animate="animate" exit="exit" onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber focus:ring-2 focus:ring-amber/10 transition-all outline-none" required />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber focus:ring-2 focus:ring-amber/10 transition-all outline-none" required placeholder="tuemail@universidad.edu.ar" />
               </div>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center ml-1">
@@ -160,7 +159,7 @@ export const Login = () => {
                   <button type="button" onClick={() => navigate('/reset-password')} className="text-[11px] font-bold text-amber hover:text-amber-soft">¿Olvidaste tu contraseña?</button>
                 </div>
                 <div className="relative">
-                  <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] pl-4 pr-12 text-[14px] text-white focus:border-amber focus:ring-2 focus:ring-amber/10 transition-all outline-none" required />
+                  <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] pl-4 pr-12 text-[14px] text-text-primary focus:border-amber focus:ring-2 focus:ring-amber/10 transition-all outline-none" required />
                   <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-amber transition-colors">
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -209,11 +208,11 @@ export const Login = () => {
                 <form key="signup-step-1" onSubmit={handleNextStep} className="space-y-5">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Email</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required />
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Contraseña</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required minLength={6} />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required minLength={6} />
                     <div className="flex gap-1.5 mt-2 ml-1">
                       {[1, 2, 3].map(bar => (
                         <div key={bar} className={cn("h-1 flex-1 rounded-full bg-[#2a2218]", bar <= getPassStrength(password) && (getPassStrength(password) === 1 ? "bg-red-500" : getPassStrength(password) === 2 ? "bg-amber" : "bg-green-500"))} />
@@ -222,7 +221,7 @@ export const Login = () => {
                   </div>
                   <div className="space-y-1.5 mb-2">
                     <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Confirmar contraseña</label>
-                    <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required />
+                    <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required />
                   </div>
 
                   {error && (
@@ -255,7 +254,7 @@ export const Login = () => {
                         setLoading(false);
                       }
                     }}
-                    className="w-full flex items-center justify-center gap-3 bg-[#1a1510] border border-[#2e2010] hover:border-amber rounded-[10px] p-[14px] transition-all"
+                    className="w-full flex items-center justify-center gap-3 bg-surface border border-border hover:border-amber rounded-[10px] p-[14px] transition-all"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -271,27 +270,27 @@ export const Login = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Nombre</label>
-                      <input value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required placeholder="Mateo" />
+                      <input value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required placeholder="Mateo" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Apellido</label>
-                      <input value={lastName} onChange={e => setLastName(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required placeholder="Pérez" />
+                      <input value={lastName} onChange={e => setLastName(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required placeholder="Pérez" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Universidad</label>
-                    <input list="universities" value={university} onChange={e => setUniversity(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required placeholder="UTN FRC" />
+                    <input list="universities" value={university} onChange={e => setUniversity(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required placeholder="UTN FRC" />
                     <datalist id="universities">
                       {universities.map(u => <option key={u} value={u} />)}
                     </datalist>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1">Carrera</label>
-                    <input value={career} onChange={e => setCareer(e.target.value)} className="w-full h-11 bg-[#1a1712] border border-[#2a2218] rounded-[10px] px-4 text-[14px] text-white focus:border-amber transition-all outline-none" required placeholder="Ingeniería Industrial" />
+                    <input value={career} onChange={e => setCareer(e.target.value)} className="w-full h-11 bg-elevated border border-border rounded-[10px] px-4 text-[14px] text-text-primary focus:border-amber transition-all outline-none" required placeholder="Ingeniería Industrial" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-text-faint uppercase tracking-widest ml-1 mb-2 block">Año que cursás</label>
-                    <div className="flex bg-[#1a1712] p-1 rounded-xl border border-[#2a2218]/50">
+                    <div className="flex bg-elevated p-1 rounded-xl border border-border">
                       {[1, 2, 3, 4, 5, 6].map(y => (
                         <button key={y} type="button" onClick={() => setYearOfStudy(y)} className={cn("flex-1 py-1.5 text-[12px] font-bold rounded-lg transition-all", yearOfStudy === y ? "bg-amber text-[#1a0f00]" : "text-text-muted hover:text-text-secondary")}>
                           {y}°
@@ -303,7 +302,7 @@ export const Login = () => {
                   {error && <p className="text-[12px] text-red-500 font-medium ml-1">{error}</p>}
 
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => setStep(1)} className="w-20 h-12 bg-[#1a1712] border border-[#2a2218] text-[#f0e8d8] font-bold text-[14px] rounded-[10px] hover:bg-[#2a2218] transition-all">
+                    <button type="button" onClick={() => setStep(1)} className="w-20 h-12 bg-elevated border border-border text-text-primary font-bold text-[14px] rounded-[10px] hover:bg-surface transition-all">
                       Atrás
                     </button>
                     <button disabled={loading} className="flex-1 h-12 bg-amber text-[#1a0f00] font-black text-[14px] rounded-[10px] hover:bg-amber-soft transition-all shadow-lg flex items-center justify-center gap-2">
