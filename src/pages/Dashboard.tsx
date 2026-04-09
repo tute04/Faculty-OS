@@ -28,65 +28,8 @@ export const Dashboard: React.FC = () => {
   const { materias, updateEntrega } = useMaterias();
 
   useEffect(() => {
-    async function seedIfNeeded(userId: string) {
-      const flagKey = `fos-seeded-${userId}`;
-      
-      // Check actual data in Supabase, not just the flag
-      const { data: existingExams } = await supabase
-        .from('exams')
-        .select('id')
-        .eq('user_id', userId)
-        .limit(1);
-
-      // If flag is set but no data exists, reset the flag and re-seed
-      if (localStorage.getItem(flagKey) && (!existingExams || existingExams.length === 0)) {
-        localStorage.removeItem(flagKey);
-      }
-
-      if (localStorage.getItem(flagKey)) return;
-
-      // Insert seed exams
-      const today = new Date();
-      const addDays = (d: number) => {
-        const date = new Date(today);
-        date.setDate(date.getDate() + d);
-        return date.toISOString().split('T')[0];
-      };
-
-      const { error } = await supabase.from('exams').insert([
-        { user_id: userId, subject: 'Estática y Resistencia de Materiales', type: 'parcial', status: 'pendiente', date: addDays(12) },
-        { user_id: userId, subject: 'Mecánica y Mecanismos', type: 'TP', status: 'pendiente', date: addDays(19) },
-        { user_id: userId, subject: 'Electrotecnia y Máquinas Eléctricas', type: 'parcial', status: 'pendiente', date: addDays(34) },
-        { user_id: userId, subject: 'Mecánica y Mecanismos', type: 'parcial', status: 'pendiente', date: addDays(41) },
-        { user_id: userId, subject: 'Estática y Resistencia de Materiales', type: 'parcial', status: 'pendiente', date: addDays(55) },
-      ]);
-
-      if (error) {
-        
-        return;
-      }
-
-      // Insert seed week blocks
-      await supabase.from('week_blocks').insert([
-        { user_id: userId, day: 0, startHour: 8, endHour: 10, category: 'facultad', label: 'Estática (clase)' },
-        { user_id: userId, day: 1, startHour: 9, endHour: 11, category: 'facultad', label: 'Mecánica (clase)' },
-        { user_id: userId, day: 1, startHour: 18, endHour: 20, category: 'futbol', label: 'Fútbol 5' },
-        { user_id: userId, day: 2, startHour: 10, endHour: 12, category: 'facultad', label: 'Electrotecnia (clase)' },
-        { user_id: userId, day: 3, startHour: 8, endHour: 10, category: 'facultad', label: 'Mecánica Lab' },
-        { user_id: userId, day: 4, startHour: 9, endHour: 11, category: 'facultad', label: 'Estática Lab' },
-        { user_id: userId, day: 0, startHour: 15, endHour: 17, category: 'estudio', label: 'Repaso Estática' },
-        { user_id: userId, day: 3, startHour: 15, endHour: 17, category: 'estudio', label: 'Repaso Mecánica' },
-        { user_id: userId, day: 6, startHour: 15, endHour: 17, category: 'emprendimiento', label: 'ITrium — plan semana' },
-      ]);
-
-      // refetch all data to populate the UI after seeding
-      await Promise.all([refetchExams(), refetchWeekBlocks()]);
-    }
-
-    if (user?.id) {
-      seedIfNeeded(user.id);
-    }
-  }, [user?.id]); // Note: We only run this when user.id is resolved, though typically dependencies for stable functions are fine here. Empty deps also ok if we only want it once on mount, but user.id can change on login. Wait, better to keep it reacting to user.id change.
+    // Seeding logic removed to prevent auto-creation when exams are deleted
+  }, [user?.id]);
 
   const now = new Date();
 

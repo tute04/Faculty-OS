@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Plus, Trash2, ExternalLink, Play, CheckCircle2, Circle, Type, Database as DriveIcon, Edit3, Clock } from 'lucide-react';
 import { useMaterias, Materia, Recurso, NotaRapida } from '../hooks/useMaterias';
+import { useExams } from '../hooks/useExams';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { cn, daysUntil } from '../lib/utils';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 
 const DEFAULT_COLORS = ['#f59e0b', '#fb923c', '#4ade80', '#2dd4bf', '#8b5cf6', '#ec4899'];
 
@@ -79,10 +80,11 @@ export const Materias: React.FC = () => {
     addRecurso, deleteRecurso,
     addNota, updateNota, deleteNota
   } = useMaterias();
+  const { exams } = useExams();
   
   const location = useLocation();
   const [selectedMateriaId, setSelectedMateriaId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'entregas' | 'notas' | 'recursos'>('entregas');
+  const [activeTab, setActiveTab] = useState<'entregas' | 'examenes' | 'notas' | 'recursos'>('entregas');
   
   const [modalMateria, setModalMateria] = useState(false);
   const [modalEditMateria, setModalEditMateria] = useState(false);
@@ -117,12 +119,13 @@ export const Materias: React.FC = () => {
     }
   }, [selectedMateriaId]);
 
-  const handleTabChange = (tab: 'entregas' | 'notas' | 'recursos') => {
+  const handleTabChange = (tab: 'entregas' | 'examenes' | 'notas' | 'recursos') => {
     setActiveTab(tab);
     if (selectedMateriaId) localStorage.setItem(`materias_tab_${selectedMateriaId}`, tab);
   };
 
   const activeMateria = materias.find(m => m.id === selectedMateriaId) || materias[0];
+  const activeExams = activeMateria ? exams.filter(e => e.subject === activeMateria.name) : [];
 
   const handleSaveMateria = (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,9 +230,10 @@ export const Materias: React.FC = () => {
             </div>
             
             {/* Tabs */}
-            <div className="flex items-center gap-8 mt-6 border-b border-border">
+            <div className="flex items-center gap-6 mt-6 border-b border-border overflow-x-auto no-scrollbar">
               {[
                 { id: 'entregas', label: 'Entregas', count: activeMateria.entregas.filter(e => !e.done).length },
+                { id: 'examenes', label: 'Exámenes', count: activeExams.filter(e => e.status === 'pendiente').length },
                 { id: 'notas', label: 'Notas', count: activeMateria.notas.length },
                 { id: 'recursos', label: 'Recursos', count: activeMateria.recursos.length }
               ].map(tab => (
@@ -297,6 +301,69 @@ export const Materias: React.FC = () => {
                           </div>
                         </div>
                       ))
+                    )}
+                  </div>
+                </motion.section>
+              )}
+
+              {activeTab === 'examenes' && (
+                <motion.section key="examenes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15 }} className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[12px] font-bold text-text-faint uppercase tracking-widest leading-none">Exámenes y Parciales</p>
+                    <Link to={`/examenes?add=true`} className="btn bg-amber hover:bg-amber-soft text-[#1a0f00] text-[11px] h-8 px-4 font-bold !rounded-full transition-all shadow-sm flex items-center gap-1">
+                      <Plus size={14} /> Nuevo Examen
+                    </Link>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2.5">
+                    {activeExams.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-12 border border-dashed border-border rounded-[16px] text-text-muted text-center grayscale opacity-80">
+                        <BookOpen size={32} className="mb-3 opacity-20" />
+                        <p className="text-[13px] font-medium">No hay exámenes registrados</p>
+                      </div>
+                    ) : (
+                      activeExams
+                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                        .map(ex => {
+                          const d = daysUntil(ex.date);
+                          return (
+                            <div key={ex.id} className={cn("flex flex-col sm:flex-row items-center justify-between p-4 rounded-[14px] bg-surface border border-border transition-all shadow-sm gap-4", ex.status !== 'pendiente' && "opacity-60")}>
+                              <div className="flex items-center gap-3 min-w-0 flex-1 w-full">
+                                <div className={cn("px-2 py-1 rounded-[6px] text-[10px] font-bold uppercase tracking-wider shrink-0", 
+                                  ex.type === 'parcial' ? "bg-amber/10 text-amber" : 
+                                  ex.type === 'final' ? "bg-red/10 text-red" : 
+                                  "bg-surface border border-border text-text-muted"
+                                )}>
+                                  {ex.type}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-[15px] font-semibold text-text-primary truncate">{ex.subject}</span>
+                                  {ex.notes && <span className="text-[12px] text-text-muted truncate mt-0.5">{ex.notes}</span>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-end">
+                                <span className={cn(
+                                  "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-[6px] border",
+                                  ex.status === 'pendiente' ? "border-border text-text-primary bg-elevated" :
+                                  ex.status === 'aprobado' ? "border-green/20 text-green bg-green/10" :
+                                  ex.status === 'desaprobado' ? "border-red/20 text-red bg-red/10" : "border-border text-text-muted bg-surface"
+                                )}>
+                                  {ex.status}
+                                </span>
+                                {typeof ex.grade === 'number' && (
+                                  <span className={cn("text-[14px] font-bold", ex.grade >= 4 ? "text-green" : "text-red")}>
+                                    {ex.grade}
+                                  </span>
+                                )}
+                                {ex.status === 'pendiente' && d >= 0 && (
+                                  d < 7 ? <span className="px-2 py-1 rounded-[6px] text-[11px] font-bold text-white bg-[#ef4444] tracking-widest">{d}d</span> :
+                                  d < 14 ? <span className="px-2 py-1 rounded-[6px] text-[11px] font-bold text-[#1a0f00] bg-[#f59e0b] tracking-widest">{d}d</span> :
+                                  <span className="text-[12px] font-medium text-text-muted flex items-center gap-1 bg-elevated px-2 py-1 rounded-[6px] border border-border"><Clock size={12}/>{d}d</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
                     )}
                   </div>
                 </motion.section>
